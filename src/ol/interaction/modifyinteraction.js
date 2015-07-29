@@ -133,7 +133,8 @@ ol.interaction.Modify = function(options) {
     'MultiPoint': this.writeMultiPointGeometry_,
     'MultiLineString': this.writeMultiLineStringGeometry_,
     'MultiPolygon': this.writeMultiPolygonGeometry_,
-    'GeometryCollection': this.writeGeometryCollectionGeometry_
+    'GeometryCollection': this.writeGeometryCollectionGeometry_,
+    'Rectangle': this.writePolygonGeometry_
   };
 
   /**
@@ -509,6 +510,51 @@ ol.interaction.Modify.handleDragEvent_ = function(evt) {
         coordinates[depth[1]][depth[0]][segmentData.index + index] = vertex;
         segment[index] = vertex;
         break;
+      case ol.geom.GeometryType.RECTANGLE:
+        var coords = coordinates[depth[0]];
+        // vertex across from the dragged vertex
+        var across = coords[(segmentData.index + index + 2) % 4];
+        // vector from across to vertex
+        var acrossToVertex = [vertex[0] - across[0], vertex[1] - across[1]];
+
+        // vertex left from dragged vertex
+        var left = coords[(segmentData.index + index + 1) % 4];
+        // vector from across to left
+        var acrossToLeft = [left[0] - across[0], left[1] - across[1]];
+        // normalize vector
+        var length = Math.sqrt(acrossToLeft[0] * acrossToLeft[0] + acrossToLeft[1] * acrossToLeft[1]);
+        acrossToLeft[0] = acrossToLeft[0] / length;
+        acrossToLeft[1] = acrossToLeft[1] / length;
+        // move left vertex to position of orthogonal projection from the dragged vertex
+        // on the acrossToLeft vector
+        var dot = acrossToVertex[0] * acrossToLeft[0] + acrossToVertex[1] * acrossToLeft[1];
+        coords[(segmentData.index + index + 1) % 4] = [
+          across[0] + dot * acrossToLeft[0],
+          across[1] + dot * acrossToLeft[1]
+        ];
+
+        // vertex right of dragged vertex
+        var right = coords[(segmentData.index + index + 3) % 4];
+        // vector from across to right
+        var acrossToRight = [right[0] - across[0], right[1] - across[1]];
+        // normalize vector
+        length = Math.sqrt(acrossToRight[0] * acrossToRight[0] + acrossToRight[1] * acrossToRight[1]);
+        acrossToRight[0] = acrossToRight[0] / length;
+        acrossToRight[1] = acrossToRight[1] / length;
+        // move right vertex to position of orthogonal projection from the dragged vertex
+        // on the acrossToRight vector
+        dot = acrossToVertex[0] * acrossToRight[0] + acrossToVertex[1] * acrossToRight[1];
+        coords[(segmentData.index + index + 3) % 4] = [
+          across[0] + dot * acrossToRight[0],
+          across[1] + dot * acrossToRight[1]
+        ];
+
+        // update position of dragged vertex
+        coords[segmentData.index + index] = vertex;
+        // refresh rBush with all vertices of the rectangle
+        this.features_.remove(segmentData.feature);
+        this.features_.push(segmentData.feature);
+        break;
     }
 
     geometry.setCoordinates(coordinates);
@@ -527,6 +573,9 @@ ol.interaction.Modify.handleUpEvent_ = function(evt) {
   var segmentData;
   for (var i = this.dragSegments_.length - 1; i >= 0; --i) {
     segmentData = this.dragSegments_[i][0];
+    if (segmentData.geometry.getType() === ol.geom.GeometryType.RECTANGLE) {
+      continue;
+    }
     this.rBush_.update(ol.extent.boundingExtent(segmentData.segment),
         segmentData);
   }

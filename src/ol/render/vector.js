@@ -354,5 +354,6 @@ ol.renderer.vector.GEOMETRY_RENDERERS_ = {
   'MultiLineString': ol.renderer.vector.renderMultiLineStringGeometry_,
   'MultiPolygon': ol.renderer.vector.renderMultiPolygonGeometry_,
   'GeometryCollection': ol.renderer.vector.renderGeometryCollectionGeometry_,
-  'Circle': ol.renderer.vector.renderCircleGeometry_
+  'Circle': ol.renderer.vector.renderCircleGeometry_,
+  'Rectangle': ol.renderer.vector.renderPolygonGeometry_
 };

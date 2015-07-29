@@ -1020,5 +1020,6 @@ ol.render.canvas.Immediate.GEOMETRY_RENDERERS_ = {
   'MultiPolygon': ol.render.canvas.Immediate.prototype.drawMultiPolygonGeometry,
   'GeometryCollection':
       ol.render.canvas.Immediate.prototype.drawGeometryCollectionGeometry,
-  'Circle': ol.render.canvas.Immediate.prototype.drawCircleGeometry
+  'Circle': ol.render.canvas.Immediate.prototype.drawCircleGeometry,
+  'Rectangle': ol.render.canvas.Immediate.prototype.drawPolygonGeometry
 };

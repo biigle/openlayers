@@ -24,6 +24,7 @@ goog.require('ol.geom.MultiPoint');
 goog.require('ol.geom.MultiPolygon');
 goog.require('ol.geom.Point');
 goog.require('ol.geom.Polygon');
+goog.require('ol.geom.Rectangle');
 goog.require('ol.geom.SimpleGeometry');
 goog.require('ol.interaction.InteractionProperty');
 goog.require('ol.interaction.Pointer');
@@ -181,6 +182,51 @@ ol.interaction.Draw = function(options) {
             coordinates[0], coordinates[1]);
         circle.setCenterAndRadius(coordinates[0], Math.sqrt(squaredLength));
         return circle;
+      };
+    } else if (this.type_ === ol.geom.GeometryType.RECTANGLE) {
+      // use LineString mode so the geometry always has an end point
+      this.mode_ = ol.interaction.DrawMode.LINE_STRING;
+      this.minPoints_ = 3;
+      this.maxPoints_ = 3;
+      /**
+       * see https://github.com/openlayers/ol3/blob/100020fd5976612c15b6e80b05a37b230532075d/examples/draw-features.js#L60-72
+       * @param {ol.Coordinate|Array.<ol.Coordinate>|Array.<Array.<ol.Coordinate>>} coordinates
+       * @param {ol.geom.SimpleGeometry=} opt_geometry
+       * @return {ol.geom.SimpleGeometry}
+       */
+      geometryFunction = function(coordinates, opt_geometry) {
+        var rectangle = goog.isDef(opt_geometry) ? opt_geometry :
+            new ol.geom.Rectangle(null);
+        var first = coordinates[0];
+        var second = coordinates[1];
+        var third = coordinates[2];
+
+        if (third === undefined) {
+          rectangle.setCoordinates([[first, second]]);
+        } else {
+          // vector from first to third
+          var a_vec = [second[0] - first[0], second[1] - first[1]];
+          // perpendicular vector to a_vec
+          var b_vec = [-1 * a_vec[1], a_vec[0]];
+
+          // helper
+          var tmp = a_vec[0] / a_vec[1];
+          // compute the intersection of the two lines
+          // going from second in b_vec direction
+          // and from third in a_vec direction
+          var x = (third[0] + tmp * (second[1] - third[1]) - second[0]) / (b_vec[0] - b_vec[1] * tmp);
+
+          // vector from second to the intersection point
+          var intersection_vec = [x * b_vec[0], x * b_vec[1]];
+
+          rectangle.setCoordinates([[
+            first,
+            second,
+            [second[0] + intersection_vec[0], second[1] + intersection_vec[1]],
+            [first[0] + intersection_vec[0], first[1] + intersection_vec[1]]
+          ]]);
+        }
+        return rectangle;
       };
     } else {
       var Constructor;
