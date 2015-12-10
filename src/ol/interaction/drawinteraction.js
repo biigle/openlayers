@@ -876,7 +876,8 @@ ol.interaction.Draw.getMode_ = function(type) {
       type === ol.geom.GeometryType.MULTI_LINE_STRING) {
     mode = ol.interaction.DrawMode.LINE_STRING;
   } else if (type === ol.geom.GeometryType.POLYGON ||
-      type === ol.geom.GeometryType.MULTI_POLYGON) {
+      type === ol.geom.GeometryType.MULTI_POLYGON ||
+      type === ol.geom.GeometryType.RECTANGLE) {
     mode = ol.interaction.DrawMode.POLYGON;
   } else if (type === ol.geom.GeometryType.CIRCLE) {
     mode = ol.interaction.DrawMode.CIRCLE;
