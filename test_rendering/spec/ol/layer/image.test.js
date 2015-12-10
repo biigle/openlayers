@@ -29,7 +29,7 @@ describe('ol.rendering.layer.Image', function() {
       }
     };
 
-    goog.array.forEach(sources, function(source) {
+    sources.forEach(function(source) {
       source.on('imageloadstart', function(event) {
         imagesLoading++;
       });
@@ -56,7 +56,7 @@ describe('ol.rendering.layer.Image', function() {
       source = new ol.source.ImageStatic({
         url: 'spec/ol/data/tiles/osm/5/5/12.png',
         imageExtent: ol.tilegrid.createXYZ().getTileCoordExtent(
-            [5, 5, 32 - 12 - 1]),
+            [5, 5, -12 - 1]),
         projection: ol.proj.get('EPSG:3857')
       });
     });
@@ -84,7 +84,6 @@ describe('ol.rendering.layer.Image', function() {
   });
 });
 
-goog.require('goog.array');
 goog.require('goog.object');
 goog.require('ol.proj');
 goog.require('ol.Map');
