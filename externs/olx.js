@@ -5006,6 +5006,66 @@ olx.source.ImageStaticOptions.prototype.url;
 
 /**
  * @typedef {{attributions: (Array.<ol.Attribution>|undefined),
+ *     canvasExtent: (ol.Extent),
+ *     canvasSize: (ol.Size|undefined),
+ *     logo: (string|olx.LogoOptions|undefined),
+ *     projection: ol.proj.ProjectionLike,
+ *     canvas: HTMLCanvasElement}}
+ * @api
+ */
+olx.source.CanvasOptions;
+
+
+/**
+ * Attributions.
+ * @type {Array.<ol.Attribution>|undefined}
+ * @api stable
+ */
+olx.source.CanvasOptions.prototype.attributions;
+
+/**
+ * Extent of the canvas in map coordinates.  This is the [left, bottom, right,
+ * top] map coordinates of your canvas.
+ * @type {ol.Extent}
+ * @api stable
+ */
+olx.source.CanvasOptions.prototype.canvasExtent;
+
+
+/**
+ * Size of the canvas in pixels.
+ * @type {ol.Size|undefined}
+ * @api stable
+ */
+olx.source.CanvasOptions.prototype.canvasSize;
+
+
+/**
+ * Optional logo.
+ * @type {string|olx.LogoOptions|undefined}
+ * @api stable
+ */
+olx.source.CanvasOptions.prototype.logo;
+
+
+/**
+ * Projection.
+ * @type {ol.proj.ProjectionLike}
+ * @api
+ */
+olx.source.CanvasOptions.prototype.projection;
+
+
+/**
+ * The canvas object.
+ * @type {HTMLCanvasElement}
+ * @api stable
+ */
+olx.source.CanvasOptions.prototype.canvas;
+
+
+/**
+ * @typedef {{attributions: (Array.<ol.Attribution>|undefined),
  *     crossOrigin: (null|string|undefined),
  *     params: (Object.<string, *>|undefined),
  *     logo: (string|olx.LogoOptions|undefined),
