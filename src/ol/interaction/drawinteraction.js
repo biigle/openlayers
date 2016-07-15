@@ -214,25 +214,31 @@ ol.interaction.Draw = function(options) {
 
           // vector from first to second
           var a_vec = [second[0] - first[0], second[1] - first[1]];
-          // perpendicular vector to a_vec
-          var b_vec = [-1 * a_vec[1], a_vec[0]];
 
-          // helper
-          var tmp = a_vec[0] / a_vec[1];
-          // compute the intersection parameter of the two lines
-          // going from second in b_vec direction
-          // and from third in a_vec direction
-          var x = (third[0] + tmp * (second[1] - third[1]) - second[0]) / (b_vec[0] - b_vec[1] * tmp);
+          if (a_vec[1] === 0) {
+              // catch the case where the first and second point are equal
+              coordinates = [[first, first, first, first]];
+          } else {
+            // perpendicular vector to a_vec
+            var b_vec = [-1 * a_vec[1], a_vec[0]];
 
-          // vector from second to the intersection point
-          var intersection_vec = [x * b_vec[0], x * b_vec[1]];
+            // helper
+            var tmp = a_vec[0] / a_vec[1];
+            // compute the intersection parameter of the two lines
+            // going from second in b_vec direction
+            // and from third in a_vec direction
+            var x = (third[0] + tmp * (second[1] - third[1]) - second[0]) / (b_vec[0] - b_vec[1] * tmp);
 
-          coordinates = [[
-            [first[0] - intersection_vec[0], first[1] - intersection_vec[1]],
-            [second[0] - intersection_vec[0], second[1] - intersection_vec[1]],
-            [second[0] + intersection_vec[0], second[1] + intersection_vec[1]],
-            [first[0] + intersection_vec[0], first[1] + intersection_vec[1]]
-          ]];
+            // vector from second to the intersection point
+            var intersection_vec = [x * b_vec[0], x * b_vec[1]];
+
+            coordinates = [[
+              [first[0] - intersection_vec[0], first[1] - intersection_vec[1]],
+              [second[0] - intersection_vec[0], second[1] - intersection_vec[1]],
+              [second[0] + intersection_vec[0], second[1] + intersection_vec[1]],
+              [first[0] + intersection_vec[0], first[1] + intersection_vec[1]]
+            ]];
+          }
         } else {
           coordinates = [coordinates];
         }
