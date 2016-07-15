@@ -1,15 +1,14 @@
 goog.provide('ol.layer.Layer');
 
-goog.require('goog.events');
-goog.require('goog.events.EventType');
-goog.require('goog.object');
+goog.require('ol.events');
+goog.require('ol.events.EventType');
 goog.require('ol');
 goog.require('ol.Object');
 goog.require('ol.layer.Base');
 goog.require('ol.layer.LayerProperty');
+goog.require('ol.object');
 goog.require('ol.render.EventType');
 goog.require('ol.source.State');
-
 
 
 /**
@@ -35,26 +34,26 @@ goog.require('ol.source.State');
  */
 ol.layer.Layer = function(options) {
 
-  var baseOptions = goog.object.clone(options);
+  var baseOptions = ol.object.assign({}, options);
   delete baseOptions.source;
 
-  goog.base(this, /** @type {olx.layer.LayerOptions} */ (baseOptions));
+  ol.layer.Base.call(this, /** @type {olx.layer.BaseOptions} */ (baseOptions));
 
   /**
    * @private
-   * @type {goog.events.Key}
+   * @type {?ol.EventsKey}
    */
   this.mapPrecomposeKey_ = null;
 
   /**
    * @private
-   * @type {goog.events.Key}
+   * @type {?ol.EventsKey}
    */
   this.mapRenderKey_ = null;
 
   /**
    * @private
-   * @type {goog.events.Key}
+   * @type {?ol.EventsKey}
    */
   this.sourceChangeKey_ = null;
 
@@ -62,21 +61,21 @@ ol.layer.Layer = function(options) {
     this.setMap(options.map);
   }
 
-  goog.events.listen(this,
+  ol.events.listen(this,
       ol.Object.getChangeEventType(ol.layer.LayerProperty.SOURCE),
-      this.handleSourcePropertyChange_, false, this);
+      this.handleSourcePropertyChange_, this);
 
   var source = options.source ? options.source : null;
   this.setSource(source);
 };
-goog.inherits(ol.layer.Layer, ol.layer.Base);
+ol.inherits(ol.layer.Layer, ol.layer.Base);
 
 
 /**
  * Return `true` if the layer is visible, and if the passed resolution is
  * between the layer's minResolution and maxResolution. The comparison is
  * inclusive for `minResolution` and exclusive for `maxResolution`.
- * @param {ol.layer.LayerState} layerState Layer state.
+ * @param {ol.LayerState} layerState Layer state.
  * @param {number} resolution Resolution.
  * @return {boolean} The layer is visible at the given resolution.
  */
@@ -140,24 +139,24 @@ ol.layer.Layer.prototype.handleSourceChange_ = function() {
  */
 ol.layer.Layer.prototype.handleSourcePropertyChange_ = function() {
   if (this.sourceChangeKey_) {
-    goog.events.unlistenByKey(this.sourceChangeKey_);
+    ol.events.unlistenByKey(this.sourceChangeKey_);
     this.sourceChangeKey_ = null;
   }
   var source = this.getSource();
   if (source) {
-    this.sourceChangeKey_ = goog.events.listen(source,
-        goog.events.EventType.CHANGE, this.handleSourceChange_, false, this);
+    this.sourceChangeKey_ = ol.events.listen(source,
+        ol.events.EventType.CHANGE, this.handleSourceChange_, this);
   }
   this.changed();
 };
 
 
 /**
- * Sets the layer to be rendered on a map. The map will not manage this layer in
- * its layers collection, layer filters in {@link ol.Map#forEachLayerAtPixel}
- * will not filter the layer, and it will be rendered on top. This is useful for
- * temporary layers. To remove an unmanaged layer from the map, use
- * `#setMap(null)`.
+ * Sets the layer to be rendered on top of other layers on a map. The map will
+ * not manage this layer in its layers collection, and the callback in
+ * {@link ol.Map#forEachLayerAtPixel} will receive `null` as layer. This
+ * is useful for temporary layers. To remove an unmanaged layer from the map,
+ * use `#setMap(null)`.
  *
  * To add the layer to a map and have it managed by the map, use
  * {@link ol.Map#addLayer} instead.
@@ -165,24 +164,28 @@ ol.layer.Layer.prototype.handleSourcePropertyChange_ = function() {
  * @api
  */
 ol.layer.Layer.prototype.setMap = function(map) {
-  goog.events.unlistenByKey(this.mapPrecomposeKey_);
-  this.mapPrecomposeKey_ = null;
+  if (this.mapPrecomposeKey_) {
+    ol.events.unlistenByKey(this.mapPrecomposeKey_);
+    this.mapPrecomposeKey_ = null;
+  }
   if (!map) {
     this.changed();
   }
-  goog.events.unlistenByKey(this.mapRenderKey_);
-  this.mapRenderKey_ = null;
+  if (this.mapRenderKey_) {
+    ol.events.unlistenByKey(this.mapRenderKey_);
+    this.mapRenderKey_ = null;
+  }
   if (map) {
-    this.mapPrecomposeKey_ = goog.events.listen(
+    this.mapPrecomposeKey_ = ol.events.listen(
         map, ol.render.EventType.PRECOMPOSE, function(evt) {
           var layerState = this.getLayerState();
           layerState.managed = false;
           layerState.zIndex = Infinity;
           evt.frameState.layerStatesArray.push(layerState);
           evt.frameState.layerStates[goog.getUid(this)] = layerState;
-        }, false, this);
-    this.mapRenderKey_ = goog.events.listen(
-        this, goog.events.EventType.CHANGE, map.render, false, map);
+        }, this);
+    this.mapRenderKey_ = ol.events.listen(
+        this, ol.events.EventType.CHANGE, map.render, map);
     this.changed();
   }
 };

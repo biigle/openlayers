@@ -1,4 +1,3 @@
-goog.provide('ol.Size');
 goog.provide('ol.size');
 
 
@@ -6,19 +5,11 @@ goog.require('goog.asserts');
 
 
 /**
- * An array of numbers representing a size: `[width, height]`.
- * @typedef {Array.<number>}
- * @api stable
- */
-ol.Size;
-
-
-/**
  * Returns a buffered size.
  * @param {ol.Size} size Size.
  * @param {number} buffer Buffer.
  * @param {ol.Size=} opt_size Optional reusable size array.
- * @return {ol.Size}
+ * @return {ol.Size} The buffered size.
  */
 ol.size.buffer = function(size, buffer, opt_size) {
   if (opt_size === undefined) {
@@ -56,7 +47,7 @@ ol.size.hasArea = function(size) {
  * @param {ol.Size} size Size.
  * @param {number} ratio Ratio.
  * @param {ol.Size=} opt_size Optional reusable size array.
- * @return {ol.Size}
+ * @return {ol.Size} The scaled size.
  */
 ol.size.scale = function(size, ratio, opt_size) {
   if (opt_size === undefined) {
@@ -78,7 +69,7 @@ ol.size.scale = function(size, ratio, opt_size) {
  * @api stable
  */
 ol.size.toSize = function(size, opt_size) {
-  if (goog.isArray(size)) {
+  if (Array.isArray(size)) {
     return size;
   } else {
     goog.asserts.assert(goog.isNumber(size));

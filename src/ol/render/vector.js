@@ -45,15 +45,14 @@ ol.renderer.vector.getTolerance = function(resolution, pixelRatio) {
  * @param {ol.Feature} feature Feature.
  * @private
  */
-ol.renderer.vector.renderCircleGeometry_ =
-    function(replayGroup, geometry, style, feature) {
+ol.renderer.vector.renderCircleGeometry_ = function(replayGroup, geometry, style, feature) {
   var fillStyle = style.getFill();
   var strokeStyle = style.getStroke();
   if (fillStyle || strokeStyle) {
     var polygonReplay = replayGroup.getReplay(
         style.getZIndex(), ol.render.ReplayType.POLYGON);
     polygonReplay.setFillStrokeStyle(fillStyle, strokeStyle);
-    polygonReplay.drawCircleGeometry(geometry, feature);
+    polygonReplay.drawCircle(geometry, feature);
   }
   var textStyle = style.getText();
   if (textStyle) {
@@ -70,7 +69,7 @@ ol.renderer.vector.renderCircleGeometry_ =
  * @param {ol.Feature|ol.render.Feature} feature Feature.
  * @param {ol.style.Style} style Style.
  * @param {number} squaredTolerance Squared tolerance.
- * @param {function(this: T, goog.events.Event)} listener Listener function.
+ * @param {function(this: T, ol.events.Event)} listener Listener function.
  * @param {T} thisArg Value to use as `this` when executing `listener`.
  * @return {boolean} `true` if style is loading.
  * @template T
@@ -131,8 +130,7 @@ ol.renderer.vector.renderFeature_ = function(
  * @param {ol.Feature} feature Feature.
  * @private
  */
-ol.renderer.vector.renderGeometryCollectionGeometry_ =
-    function(replayGroup, geometry, style, feature) {
+ol.renderer.vector.renderGeometryCollectionGeometry_ = function(replayGroup, geometry, style, feature) {
   var geometries = geometry.getGeometriesArray();
   var i, ii;
   for (i = 0, ii = geometries.length; i < ii; ++i) {
@@ -152,14 +150,13 @@ ol.renderer.vector.renderGeometryCollectionGeometry_ =
  * @param {ol.Feature|ol.render.Feature} feature Feature.
  * @private
  */
-ol.renderer.vector.renderLineStringGeometry_ =
-    function(replayGroup, geometry, style, feature) {
+ol.renderer.vector.renderLineStringGeometry_ = function(replayGroup, geometry, style, feature) {
   var strokeStyle = style.getStroke();
   if (strokeStyle) {
     var lineStringReplay = replayGroup.getReplay(
         style.getZIndex(), ol.render.ReplayType.LINE_STRING);
     lineStringReplay.setFillStrokeStyle(null, strokeStyle);
-    lineStringReplay.drawLineStringGeometry(geometry, feature);
+    lineStringReplay.drawLineString(geometry, feature);
   }
   var textStyle = style.getText();
   if (textStyle) {
@@ -178,14 +175,13 @@ ol.renderer.vector.renderLineStringGeometry_ =
  * @param {ol.Feature|ol.render.Feature} feature Feature.
  * @private
  */
-ol.renderer.vector.renderMultiLineStringGeometry_ =
-    function(replayGroup, geometry, style, feature) {
+ol.renderer.vector.renderMultiLineStringGeometry_ = function(replayGroup, geometry, style, feature) {
   var strokeStyle = style.getStroke();
   if (strokeStyle) {
     var lineStringReplay = replayGroup.getReplay(
         style.getZIndex(), ol.render.ReplayType.LINE_STRING);
     lineStringReplay.setFillStrokeStyle(null, strokeStyle);
-    lineStringReplay.drawMultiLineStringGeometry(geometry, feature);
+    lineStringReplay.drawMultiLineString(geometry, feature);
   }
   var textStyle = style.getText();
   if (textStyle) {
@@ -206,15 +202,14 @@ ol.renderer.vector.renderMultiLineStringGeometry_ =
  * @param {ol.Feature} feature Feature.
  * @private
  */
-ol.renderer.vector.renderMultiPolygonGeometry_ =
-    function(replayGroup, geometry, style, feature) {
+ol.renderer.vector.renderMultiPolygonGeometry_ = function(replayGroup, geometry, style, feature) {
   var fillStyle = style.getFill();
   var strokeStyle = style.getStroke();
   if (strokeStyle || fillStyle) {
     var polygonReplay = replayGroup.getReplay(
         style.getZIndex(), ol.render.ReplayType.POLYGON);
     polygonReplay.setFillStrokeStyle(fillStyle, strokeStyle);
-    polygonReplay.drawMultiPolygonGeometry(geometry, feature);
+    polygonReplay.drawMultiPolygon(geometry, feature);
   }
   var textStyle = style.getText();
   if (textStyle) {
@@ -235,8 +230,7 @@ ol.renderer.vector.renderMultiPolygonGeometry_ =
  * @param {ol.Feature|ol.render.Feature} feature Feature.
  * @private
  */
-ol.renderer.vector.renderPointGeometry_ =
-    function(replayGroup, geometry, style, feature) {
+ol.renderer.vector.renderPointGeometry_ = function(replayGroup, geometry, style, feature) {
   var imageStyle = style.getImage();
   if (imageStyle) {
     if (imageStyle.getImageState() != ol.style.ImageState.LOADED) {
@@ -245,7 +239,7 @@ ol.renderer.vector.renderPointGeometry_ =
     var imageReplay = replayGroup.getReplay(
         style.getZIndex(), ol.render.ReplayType.IMAGE);
     imageReplay.setImageStyle(imageStyle);
-    imageReplay.drawPointGeometry(geometry, feature);
+    imageReplay.drawPoint(geometry, feature);
   }
   var textStyle = style.getText();
   if (textStyle) {
@@ -265,8 +259,7 @@ ol.renderer.vector.renderPointGeometry_ =
  * @param {ol.Feature|ol.render.Feature} feature Feature.
  * @private
  */
-ol.renderer.vector.renderMultiPointGeometry_ =
-    function(replayGroup, geometry, style, feature) {
+ol.renderer.vector.renderMultiPointGeometry_ = function(replayGroup, geometry, style, feature) {
   var imageStyle = style.getImage();
   if (imageStyle) {
     if (imageStyle.getImageState() != ol.style.ImageState.LOADED) {
@@ -275,7 +268,7 @@ ol.renderer.vector.renderMultiPointGeometry_ =
     var imageReplay = replayGroup.getReplay(
         style.getZIndex(), ol.render.ReplayType.IMAGE);
     imageReplay.setImageStyle(imageStyle);
-    imageReplay.drawMultiPointGeometry(geometry, feature);
+    imageReplay.drawMultiPoint(geometry, feature);
   }
   var textStyle = style.getText();
   if (textStyle) {
@@ -296,15 +289,14 @@ ol.renderer.vector.renderMultiPointGeometry_ =
  * @param {ol.Feature|ol.render.Feature} feature Feature.
  * @private
  */
-ol.renderer.vector.renderPolygonGeometry_ =
-    function(replayGroup, geometry, style, feature) {
+ol.renderer.vector.renderPolygonGeometry_ = function(replayGroup, geometry, style, feature) {
   var fillStyle = style.getFill();
   var strokeStyle = style.getStroke();
   if (fillStyle || strokeStyle) {
     var polygonReplay = replayGroup.getReplay(
         style.getZIndex(), ol.render.ReplayType.POLYGON);
     polygonReplay.setFillStrokeStyle(fillStyle, strokeStyle);
-    polygonReplay.drawPolygonGeometry(geometry, feature);
+    polygonReplay.drawPolygon(geometry, feature);
   }
   var textStyle = style.getText();
   if (textStyle) {

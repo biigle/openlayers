@@ -5,21 +5,22 @@ describe('ol.rendering.reproj.Tile', function() {
   function testSingleTile(source, targetProjection, targetTileGrid, z, x, y,
                           pixelRatio, expectedUrl, expectedRequests, done) {
     var sourceProjection = source.getProjection();
+    var sourceGutter = source.getGutter(sourceProjection);
 
     var tilesRequested = 0;
 
     var tile = new ol.reproj.Tile(sourceProjection, source.getTileGrid(),
-        ol.proj.get(targetProjection), targetTileGrid, z, x, y, pixelRatio,
+        ol.proj.get(targetProjection), targetTileGrid,
+        [z, x, y], null, pixelRatio, sourceGutter,
         function(z, x, y, pixelRatio) {
           tilesRequested++;
           return source.getTile(z, x, y, pixelRatio, sourceProjection);
         });
     if (tile.getState() == ol.TileState.IDLE) {
-      tile.listen('change', function(e) {
+      ol.events.listen(tile, 'change', function(e) {
         if (tile.getState() == ol.TileState.LOADED) {
           expect(tilesRequested).to.be(expectedRequests);
-          resembleCanvas(tile.getImage(), expectedUrl,
-              IMAGE_TOLERANCE, done);
+          resembleCanvas(tile.getImage(), expectedUrl, 7.5, done);
         }
       });
       tile.load();
@@ -172,6 +173,7 @@ describe('ol.rendering.reproj.Tile', function() {
   });
 });
 
+goog.require('ol.events');
 goog.require('ol.proj');
 goog.require('ol.reproj.Tile');
 goog.require('ol.source.XYZ');

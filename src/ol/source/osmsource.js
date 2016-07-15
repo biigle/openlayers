@@ -4,7 +4,6 @@ goog.require('ol.Attribution');
 goog.require('ol.source.XYZ');
 
 
-
 /**
  * @classdesc
  * Layer source for the OpenStreetMap tile server.
@@ -31,10 +30,11 @@ ol.source.OSM = function(opt_options) {
   var url = options.url !== undefined ?
       options.url : 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-  goog.base(this, {
+  ol.source.XYZ.call(this, {
     attributions: attributions,
+    cacheSize: options.cacheSize,
     crossOrigin: crossOrigin,
-    opaque: true,
+    opaque: options.opaque !== undefined ? options.opaque : true,
     maxZoom: options.maxZoom !== undefined ? options.maxZoom : 19,
     reprojectionErrorThreshold: options.reprojectionErrorThreshold,
     tileLoadFunction: options.tileLoadFunction,
@@ -43,7 +43,7 @@ ol.source.OSM = function(opt_options) {
   });
 
 };
-goog.inherits(ol.source.OSM, ol.source.XYZ);
+ol.inherits(ol.source.OSM, ol.source.XYZ);
 
 
 /**

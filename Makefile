@@ -93,8 +93,7 @@ compile-examples: build/compiled-examples/all.combined.js
 
 .PHONY: clean
 clean:
-	rm -f build/timestamps/gjslint-timestamp
-	rm -f build/timestamps/jshint-timestamp
+	rm -f build/timestamps/eslint-timestamp
 	rm -f build/timestamps/check-*-timestamp
 	rm -f build/ol.css
 	rm -f build/ol.js
@@ -120,9 +119,7 @@ examples: $(BUILD_EXAMPLES)
 install: build/timestamps/node-modules-timestamp
 
 .PHONY: lint
-lint: build/timestamps/gjslint-timestamp build/timestamps/jshint-timestamp \
-      build/timestamps/check-requires-timestamp \
-      build/timestamps/check-whitespace-timestamp
+lint: build/timestamps/eslint-timestamp
 
 .PHONY: npm-install
 npm-install: build/timestamps/node-modules-timestamp
@@ -183,21 +180,7 @@ build/timestamps/check-%-timestamp: $(BUILD_HOSTED)/examples/%.html \
                                     $(BUILD_HOSTED)/build/ol.js \
                                     $(BUILD_HOSTED)/css/ol.css
 	@mkdir -p $(@D)
-	./node_modules/.bin/phantomjs --ssl-protocol=any --ignore-ssl-errors=true bin/check-example.js $(addsuffix ?mode=advanced, $<)
-	@touch $@
-
-build/timestamps/check-requires-timestamp: $(SRC_JS) $(EXAMPLES_JS) \
-                                           $(SRC_SHADER_JS) $(SPEC_JS) \
-                                           $(SPEC_RENDERING_JS)
-	@mkdir -p $(@D)
-	@python bin/check-requires.py $(CLOSURE_LIB) $^
-	@touch $@
-
-build/timestamps/check-whitespace-timestamp: $(SRC_JS) $(EXAMPLES_JS) \
-                                             $(SPEC_JS) $(SPEC_RENDERING_JS) \
-                                             $(SRC_JSDOC)
-	@mkdir -p $(@D)
-	@python bin/check-whitespace.py $^
+	./node_modules/.bin/phantomjs --local-to-remote-url-access=true --ssl-protocol=any --ignore-ssl-errors=true bin/check-example.js $<
 	@touch $@
 
 build/compiled-examples/all.js: $(EXAMPLES_JS)
@@ -228,14 +211,7 @@ build/timestamps/jsdoc-$(BRANCH)-timestamp: config/jsdoc/api/index.md \
                                             build/timestamps/node-modules-timestamp
 	@mkdir -p $(@D)
 	@rm -rf $(BUILD_HOSTED)/apidoc
-	./node_modules/.bin/jsdoc config/jsdoc/api/index.md -c config/jsdoc/api/conf.json -d $(BUILD_HOSTED)/apidoc
-	@touch $@
-
-build/timestamps/gjslint-timestamp: $(SRC_JS) $(SPEC_JS) $(SPEC_RENDERING_JS) \
-                                    $(EXAMPLES_JS)
-	@mkdir -p $(@D)
-	@echo "Running gjslint..."
-	@gjslint --jslint_error=all --custom_jsdoc_tags=event,fires,function,classdesc,api,observable --strict $?
+	./node_modules/.bin/jsdoc config/jsdoc/api/index.md -c config/jsdoc/api/conf.json --package package.json -d $(BUILD_HOSTED)/apidoc
 	@touch $@
 
 $(BUILD_HOSTED_EXAMPLES_JS): $(BUILD_HOSTED)/examples/%.js: build/examples/%.js
@@ -271,13 +247,12 @@ $(BUILD_HOSTED)/build/ol-deps.js: host-libraries
            --root_with_prefix "$(BUILD_HOSTED)/closure-library/third_party ../../third_party" \
            --output_file $@
 
-build/timestamps/jshint-timestamp: $(SRC_JS) $(SPEC_JS) $(SPEC_RENDERING_JS) \
+build/timestamps/eslint-timestamp: $(SRC_JS) $(SPEC_JS) $(SPEC_RENDERING_JS) \
                                    $(TASKS_JS) $(EXAMPLES_JS) \
-                                   examples/resources/common.js \
                                    build/timestamps/node-modules-timestamp
 	@mkdir -p $(@D)
-	@echo "Running jshint..."
-	@./node_modules/.bin/jshint --verbose $?
+	@echo "Running eslint..."
+	@./node_modules/.bin/eslint $?
 	@touch $@
 
 build/timestamps/node-modules-timestamp: package.json

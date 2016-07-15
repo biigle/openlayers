@@ -5,7 +5,6 @@ goog.require('ol.ImageBase');
 goog.require('ol.ImageState');
 
 
-
 /**
  * @constructor
  * @extends {ol.ImageBase}
@@ -30,7 +29,7 @@ ol.ImageCanvas = function(extent, resolution, pixelRatio, attributions,
   var state = opt_loader !== undefined ?
       ol.ImageState.IDLE : ol.ImageState.LOADED;
 
-  goog.base(this, extent, resolution, pixelRatio, state, attributions);
+  ol.ImageBase.call(this, extent, resolution, pixelRatio, state, attributions);
 
   /**
    * @private
@@ -45,7 +44,7 @@ ol.ImageCanvas = function(extent, resolution, pixelRatio, attributions,
   this.error_ = null;
 
 };
-goog.inherits(ol.ImageCanvas, ol.ImageBase);
+ol.inherits(ol.ImageCanvas, ol.ImageBase);
 
 
 /**
@@ -81,7 +80,7 @@ ol.ImageCanvas.prototype.load = function() {
     goog.asserts.assert(this.loader_, 'this.loader_ must be set');
     this.state = ol.ImageState.LOADING;
     this.changed();
-    this.loader_(goog.bind(this.handleLoad_, this));
+    this.loader_(this.handleLoad_.bind(this));
   }
 };
 
@@ -92,14 +91,3 @@ ol.ImageCanvas.prototype.load = function() {
 ol.ImageCanvas.prototype.getImage = function(opt_context) {
   return this.canvas_;
 };
-
-
-/**
- * A function that is called to trigger asynchronous canvas drawing.  It is
- * called with a "done" callback that should be called when drawing is done.
- * If any error occurs during drawing, the "done" callback should be called with
- * that error.
- *
- * @typedef {function(function(Error))}
- */
-ol.ImageCanvasLoader;

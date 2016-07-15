@@ -1,20 +1,9 @@
 goog.provide('ol.VectorTile');
 
 goog.require('ol.Tile');
-goog.require('ol.TileCoord');
-goog.require('ol.TileLoadFunctionType');
 goog.require('ol.TileState');
-
-
-/**
- * @typedef {{
- *     dirty: boolean,
- *     renderedRenderOrder: (null|function(ol.Feature, ol.Feature):number),
- *     renderedRevision: number,
- *     replayGroup: ol.render.IReplayGroup}}
- */
-ol.TileReplayState;
-
+goog.require('ol.dom');
+goog.require('ol.proj.Projection');
 
 
 /**
@@ -28,7 +17,13 @@ ol.TileReplayState;
  */
 ol.VectorTile = function(tileCoord, state, src, format, tileLoadFunction) {
 
-  goog.base(this, tileCoord, state);
+  ol.Tile.call(this, tileCoord, state);
+
+  /**
+   * @private
+   * @type {CanvasRenderingContext2D}
+   */
+  this.context_ = ol.dom.createCanvasContext2D();
 
   /**
    * @private
@@ -49,10 +44,11 @@ ol.VectorTile = function(tileCoord, state, src, format, tileLoadFunction) {
   this.loader_;
 
   /**
+   * Data projection
    * @private
    * @type {ol.proj.Projection}
    */
-  this.projection_ = null;
+  this.projection_;
 
   /**
    * @private
@@ -62,7 +58,9 @@ ol.VectorTile = function(tileCoord, state, src, format, tileLoadFunction) {
     dirty: false,
     renderedRenderOrder: null,
     renderedRevision: -1,
-    replayGroup: null
+    renderedTileRevision: -1,
+    replayGroup: null,
+    skippedFeatures: []
   };
 
   /**
@@ -78,14 +76,23 @@ ol.VectorTile = function(tileCoord, state, src, format, tileLoadFunction) {
   this.url_ = src;
 
 };
-goog.inherits(ol.VectorTile, ol.Tile);
+ol.inherits(ol.VectorTile, ol.Tile);
+
+
+/**
+ * @return {CanvasRenderingContext2D} The rendering context.
+ */
+ol.VectorTile.prototype.getContext = function() {
+  return this.context_;
+};
 
 
 /**
  * @inheritDoc
  */
-ol.VectorTile.prototype.disposeInternal = function() {
-  goog.base(this, 'disposeInternal');
+ol.VectorTile.prototype.getImage = function() {
+  return this.replayState_.renderedTileRevision == -1 ?
+      null : this.context_.canvas;
 };
 
 
@@ -108,7 +115,7 @@ ol.VectorTile.prototype.getFeatures = function() {
 
 
 /**
- * @return {ol.TileReplayState}
+ * @return {ol.TileReplayState} The replay state.
  */
 ol.VectorTile.prototype.getReplayState = function() {
   return this.replayState_;
@@ -124,7 +131,7 @@ ol.VectorTile.prototype.getKey = function() {
 
 
 /**
- * @return {ol.proj.Projection} Projection.
+ * @return {ol.proj.Projection} Feature projection.
  */
 ol.VectorTile.prototype.getProjection = function() {
   return this.projection_;
@@ -145,6 +152,7 @@ ol.VectorTile.prototype.load = function() {
 
 /**
  * @param {Array.<ol.Feature>} features Features.
+ * @api
  */
 ol.VectorTile.prototype.setFeatures = function(features) {
   this.features_ = features;
@@ -153,7 +161,9 @@ ol.VectorTile.prototype.setFeatures = function(features) {
 
 
 /**
- * @param {ol.proj.Projection} projection Projection.
+ * Set the projection of the features that were added with {@link #setFeatures}.
+ * @param {ol.proj.Projection} projection Feature projection.
+ * @api
  */
 ol.VectorTile.prototype.setProjection = function(projection) {
   this.projection_ = projection;

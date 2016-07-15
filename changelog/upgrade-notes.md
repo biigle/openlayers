@@ -1,5 +1,208 @@
 ## Upgrade notes
 
+### v3.17.0
+
+#### `ol.source.MapQuest` removal
+
+Because of changes at MapQuest (see: https://lists.openstreetmap.org/pipermail/talk/2016-June/076106.html) we had to remove the MapQuest source for now (see https://github.com/openlayers/ol3/issues/5484 for details).
+
+#### `ol.interaction.ModifyEvent` changes
+
+The event object previously had a `mapBrowserPointerEvent` property, which has been renamed to `mapBrowserEvent`.
+
+#### Removal of ol.raster namespace
+
+Users compiling their code with the library and using types in the `ol.raster` namespace should note that this has now been removed. `ol.raster.Pixel` has been deleted, and the other types have been renamed as follows, and your code may need changing if you use these:
+* `ol.raster.Operation` to `ol.RasterOperation`
+* `ol.raster.OperationType` to `ol.RasterOperationType`
+
+#### All typedefs now in ol namespace
+
+Users compiling their code with the library should note that the following typedefs have been renamed; your code may need changing if you use these:
+* ol.events.ConditionType to ol.EventsConditionType
+* ol.events.EventTargetLike to ol.EventTargetLike
+* ol.events.Key to ol.EventsKey
+* ol.events.ListenerFunctionType to ol.EventsListenerFunctionType
+* ol.interaction.DragBoxEndConditionType to ol.DragBoxEndConditionType
+* ol.interaction.DrawGeometryFunctionType to ol.DrawGeometryFunctionType
+* ol.interaction.SegmentDataType to ol.ModifySegmentDataType
+* ol.interaction.SelectFilterFunction to ol.SelectFilterFunction
+* ol.interaction.SnapResultType to ol.SnapResultType
+* ol.interaction.SnapSegmentDataType to ol.SnapSegmentDataType
+* ol.proj.ProjectionLike to ol.ProjectionLike
+* ol.style.AtlasBlock to ol.AtlasBlock
+* ol.style.AtlasInfo to ol.AtlasInfo
+* ol.style.AtlasManagerInfo to ol.AtlasManagerInfo
+* ol.style.CircleRenderOptions to ol.CircleRenderOptions
+* ol.style.ImageOptions to ol.StyleImageOptions
+* ol.style.GeometryFunction to ol.StyleGeometryFunction
+* ol.style.RegularShapeRenderOptions to ol.RegularShapeRenderOptions
+* ol.style.StyleFunction to ol.StyleFunction
+
+### v3.16.0
+
+#### Rendering change for tile sources
+
+Previously, if you called `source.setUrl()` on a tile source, all currently rendered tiles would be cleared before new tiles were loaded and rendered.  This clearing of the map is undesirable if you are trying to smoothly update the tiles used by a source.  This behavior has now changed, and calling `source.setUrl()` (or `source.setUrls()`) will *not* clear currently rendered tiles before loading and rendering new tiles.  Instead, previously rendered tiles remain rendered until new tiles have loaded and can replace them.  If you want to achieve the old behavior (render a blank map before loading new tiles), you can call `source.refresh()` or you can replace the old source with a new one (using `layer.setSource()`).
+
+#### Move of typedefs out of code and into separate file
+
+This change should not affect the great majority of application developers, but it's possible there are edge cases when compiling application code together with the library which cause compiler errors or warnings. In this case, please raise a GitHub issue. `goog.require`s for typedefs should not be necessary.
+Users compiling their code with the library should note that the following API `@typedef`s have been renamed; your code may need changing if you use these:
+* `ol.format.WFS.FeatureCollectionMetadata` to `ol.WFSFeatureCollectionMetadata`
+* `ol.format.WFS.TransactionResponse` to `ol.WFSTransactionResponse`
+
+#### Removal of `opaque` option for `ol.source.VectorTile`
+
+This option is no longer needed, so it was removed from the API.
+
+#### XHR loading for `ol.source.TileUTFGrid`
+
+The `ol.source.TileUTFGrid` now uses XMLHttpRequest to load UTFGrid tiles by default.  This works out of the box with the v4 Mapbox API.  To work with the v3 API, you must use the new `jsonp` option on the source.  See the examples below for detail.
+
+```js
+// To work with the v4 API
+var v4source = new ol.source.TileUTFGrid({
+  url: 'https://api.tiles.mapbox.com/v4/example.json?access_token=' + YOUR_KEY_HERE
+});
+
+// To work with the v3 API
+var v3source = new ol.source.TileUTFGrid({
+  jsonp: true, // <--- this is required for v3
+  url: 'http://api.tiles.mapbox.com/v3/example.json'
+});
+```
+
+### v3.15.0
+
+#### Internet Explorer 9 support
+
+As of this release, OpenLayers requires a `classList` polyfill for IE 9 support. See http://cdn.polyfill.io/v2/docs/features#Element_prototype_classList.
+
+#### Immediate rendering API
+
+Listeners for `precompose`, `render`, and `postcompose` receive an event with a `vectorContext` property with methods for immediate vector rendering.  The previous geometry drawing methods have been replaced with a single `vectorContext.drawGeometry(geometry)` method.  If you were using any of the following experimental methods on the vector context, replace them with `drawGeometry`:
+
+ * Removed experimental geometry drawing methods: `drawPointGeometry`, `drawLineStringGeometry`, `drawPolygonGeometry`, `drawMultiPointGeometry`, `drawMultiLineStringGeometry`, `drawMultiPolygonGeometry`, and `drawCircleGeometry` (all have been replaced with `drawGeometry`).
+
+In addition, the previous methods for setting style parts have been replaced with a single `vectorContext.setStyle(style)` method.  If you were using any of the following experimental methods on the vector context, replace them with `setStyle`:
+
+ * Removed experimental style setting methods: `setFillStrokeStyle`, `setImageStyle`, `setTextStyle` (all have been replaced with `setStyle`).
+
+Below is an example of how the vector context might have been used in the past:
+
+```js
+// OLD WAY, NO LONGER SUPPORTED
+map.on('postcompose', function(event) {
+  event.vectorContext.setFillStrokeStyle(style.getFill(), style.getStroke());
+  event.vectorContext.drawPointGeometry(geometry);
+});
+```
+
+Here is an example of how you could accomplish the same with the new methods:
+```js
+// NEW WAY, USE THIS INSTEAD OF THE CODE ABOVE
+map.on('postcompose', function(event) {
+  event.vectorContext.setStyle(style);
+  event.vectorContext.drawGeometry(geometry);
+});
+```
+
+A final change to the immediate rendering API is that `vectorContext.drawFeature()` calls are now "immediate" as well.  The drawing now occurs synchronously.  This means that any `zIndex` in a style passed to `drawFeature()` will be ignored.  To achieve `zIndex` ordering, order your calls to `drawFeature()` instead.
+
+#### Removal of `ol.DEFAULT_TILE_CACHE_HIGH_WATER_MARK`
+
+The `ol.DEFAULT_TILE_CACHE_HIGH_WATER_MARK` define has been removed. The size of the cache can now be defined on every tile based `ol.source`:
+```js
+new ol.layer.Tile({
+  source: new ol.source.OSM({
+    cacheSize: 128
+  })
+})
+```
+The default cache size is `2048`.
+
+### v3.14.0
+
+#### Internet Explorer 9 support
+
+As of this release, OpenLayers requires a `requestAnimationFrame`/`cancelAnimationFrame` polyfill for IE 9 support. See http://cdn.polyfill.io/v2/docs/features/#requestAnimationFrame.
+
+#### Layer pre-/postcompose event changes
+
+It is the responsibility of the application to undo any canvas transform changes at the end of a layer 'precompose' or 'postcompose' handler. Previously, it was ok to set a null transform. The API now guarantees a device pixel coordinate system on the canvas with its origin in the top left corner of the map. However, applications should not rely on the underlying canvas being the same size as the visible viewport.
+
+Old code:
+```js
+layer.on('precompose', function(e) {
+  // rely on canvas dimensions to move coordinate origin to center
+  e.context.translate(e.context.canvas.width / 2, e.context.canvas.height / 2);
+  e.context.scale(3, 3);
+  // draw an x in the center of the viewport
+  e.context.moveTo(-20, -20);
+  e.context.lineTo(20, 20);
+  e.context.moveTo(-20, 20);
+  e.context.lineTo(20, -20);
+  // rely on the canvas having a null transform
+  e.context.setTransform(1, 0, 0, 1, 0, 0);
+});
+```
+New code:
+```js
+layer.on('precompose', function(e) {
+  // use map size and pixel ratio to move coordinate origin to center
+  var size = map.getSize();
+  var pixelRatio = e.frameState.pixelRatio;
+  e.context.translate(size[0] / 2 * pixelRatio, size[1] / 2 * pixelRatio);
+  e.context.scale(3, 3);
+  // draw an x in the center of the viewport
+  e.context.moveTo(-20, -20);
+  e.context.lineTo(20, 20);
+  e.context.moveTo(-20, 20);
+  e.context.lineTo(20, -20);
+  // undo all transforms
+  e.context.scale(1 / 3, 1 / 3);
+  e.context.translate(-size[0] / 2 * pixelRatio, -size[1] / 2 * pixelRatio);
+});
+```
+
+### v3.13.0
+
+#### `proj4js` integration
+
+Before this release, OpenLayers depended on the global proj4 namespace. When using a module loader like Browserify, you might not want to depend on the global `proj4` namespace. You can use the `ol.proj.setProj4` function to set the proj4 function object. For example in a browserify ES6 environment:
+
+```js
+import ol from 'openlayers';
+import proj4 from 'proj4';
+ol.proj.setProj4(proj4);
+```
+
+#### `ol.source.TileJSON` changes
+
+The `ol.source.TileJSON` now uses `XMLHttpRequest` to load the TileJSON instead of JSONP with callback.
+When using server without proper CORS support, `jsonp: true` option can be passed to the constructor to get the same behavior as before:
+```js
+new ol.source.TileJSON({
+  url: 'http://serverwithoutcors.com/tilejson.json',
+  jsonp: true
+})
+```
+Also for Mapbox v3, make sure you use urls ending with `.json` (which are able to handle both `XMLHttpRequest` and JSONP) instead of `.jsonp`.
+
+### v3.12.0
+
+#### `ol.Map#forEachFeatureAtPixel` changes
+
+The optional `layerFilter` function is now also called for unmanaged layers. To get the same behaviour as before, wrap your layer filter code in an if block like this:
+```js
+function layerFilter(layer) {
+  if (map.getLayers().getArray().indexOf(layer) !== -1) {
+    // existing layer filter code
+  }
+}
+```
+
 ### v3.11.0
 
 #### `ol.format.KML` changes

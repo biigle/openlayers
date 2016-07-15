@@ -32,7 +32,7 @@ describe('ol.interaction.Draw', function() {
   });
 
   afterEach(function() {
-    goog.dispose(map);
+    map.dispose();
     document.body.removeChild(target);
   });
 
@@ -47,16 +47,14 @@ describe('ol.interaction.Draw', function() {
   function simulateEvent(type, x, y, opt_shiftKey) {
     var viewport = map.getViewport();
     // calculated in case body has top < 0 (test runner with small window)
-    var position = goog.style.getClientPosition(viewport);
+    var position = viewport.getBoundingClientRect();
     var shiftKey = opt_shiftKey !== undefined ? opt_shiftKey : false;
-    var event = new ol.MapBrowserPointerEvent(type, map,
-        new ol.pointer.PointerEvent(type,
-            new goog.events.BrowserEvent({
-              clientX: position.x + x + width / 2,
-              clientY: position.y + y + height / 2,
-              shiftKey: shiftKey
-            })));
-    map.handleMapBrowserEvent(event);
+    var event = new ol.pointer.PointerEvent(type, {
+      clientX: position.left + x + width / 2,
+      clientY: position.top + y + height / 2,
+      shiftKey: shiftKey
+    });
+    map.handleMapBrowserEvent(new ol.MapBrowserPointerEvent(type, map, event));
   }
 
   describe('constructor', function() {
@@ -163,8 +161,8 @@ describe('ol.interaction.Draw', function() {
     it('triggers draw events', function() {
       var ds = sinon.spy();
       var de = sinon.spy();
-      goog.events.listen(draw, ol.interaction.DrawEventType.DRAWSTART, ds);
-      goog.events.listen(draw, ol.interaction.DrawEventType.DRAWEND, de);
+      ol.events.listen(draw, ol.interaction.DrawEventType.DRAWSTART, ds);
+      ol.events.listen(draw, ol.interaction.DrawEventType.DRAWEND, de);
       simulateEvent('pointermove', 10, 20);
       simulateEvent('pointerdown', 10, 20);
       simulateEvent('pointerup', 10, 20);
@@ -180,7 +178,7 @@ describe('ol.interaction.Draw', function() {
         end: 0,
         addfeature: 0
       };
-      goog.events.listen(draw, ol.interaction.DrawEventType.DRAWEND,
+      ol.events.listen(draw, ol.interaction.DrawEventType.DRAWEND,
           function() {
             expect(receivedEvents.end).to.be(0);
             expect(receivedEvents.addfeature).to.be(0);
@@ -309,8 +307,8 @@ describe('ol.interaction.Draw', function() {
     it('triggers draw events', function() {
       var ds = sinon.spy();
       var de = sinon.spy();
-      goog.events.listen(draw, ol.interaction.DrawEventType.DRAWSTART, ds);
-      goog.events.listen(draw, ol.interaction.DrawEventType.DRAWEND, de);
+      ol.events.listen(draw, ol.interaction.DrawEventType.DRAWSTART, ds);
+      ol.events.listen(draw, ol.interaction.DrawEventType.DRAWEND, de);
 
       // first point
       simulateEvent('pointermove', 10, 20);
@@ -333,6 +331,55 @@ describe('ol.interaction.Draw', function() {
       expect(de.callCount).to.be(1);
     });
 
+  });
+
+  describe('drawing with a finishCondition', function() {
+    beforeEach(function() {
+      var draw = new ol.interaction.Draw({
+        source: source,
+        type: ol.geom.GeometryType.LINE_STRING,
+        finishCondition: function(event) {
+          if (ol.array.equals(event.coordinate,[30,-20])) {
+            return true;
+          }
+          return false;
+        }
+      });
+      map.addInteraction(draw);
+    });
+
+    it('draws a linestring failing to finish it first, the finishes it', function() {
+      var features;
+
+      // first point
+      simulateEvent('pointermove', 10, 20);
+      simulateEvent('pointerdown', 10, 20);
+      simulateEvent('pointerup', 10, 20);
+
+      // second point
+      simulateEvent('pointermove', 40, 30);
+      simulateEvent('pointerdown', 40, 30);
+      simulateEvent('pointerup', 40, 30);
+
+      // try to finish on this point
+      simulateEvent('pointerdown', 40, 30);
+      simulateEvent('pointerup', 40, 30);
+
+      features = source.getFeatures();
+      expect(features).to.have.length(0);
+
+      // third point
+      simulateEvent('pointermove', 30, 20);
+      simulateEvent('pointerdown', 30, 20);
+      simulateEvent('pointerup', 30, 20);
+
+      //  finish on this point
+      simulateEvent('pointerdown', 30, 20);
+      simulateEvent('pointerup', 30, 20);
+
+      features = source.getFeatures();
+      expect(features).to.have.length(1);
+    });
   });
 
   describe('drawing multi-linestrings', function() {
@@ -467,8 +514,8 @@ describe('ol.interaction.Draw', function() {
     it('triggers draw events', function() {
       var ds = sinon.spy();
       var de = sinon.spy();
-      goog.events.listen(draw, ol.interaction.DrawEventType.DRAWSTART, ds);
-      goog.events.listen(draw, ol.interaction.DrawEventType.DRAWEND, de);
+      ol.events.listen(draw, ol.interaction.DrawEventType.DRAWSTART, ds);
+      ol.events.listen(draw, ol.interaction.DrawEventType.DRAWEND, de);
 
       // first point
       simulateEvent('pointermove', 10, 20);
@@ -607,8 +654,8 @@ describe('ol.interaction.Draw', function() {
     it('triggers draw events', function() {
       var ds = sinon.spy();
       var de = sinon.spy();
-      goog.events.listen(draw, ol.interaction.DrawEventType.DRAWSTART, ds);
-      goog.events.listen(draw, ol.interaction.DrawEventType.DRAWEND, de);
+      ol.events.listen(draw, ol.interaction.DrawEventType.DRAWSTART, ds);
+      ol.events.listen(draw, ol.interaction.DrawEventType.DRAWEND, de);
 
       // first point
       simulateEvent('pointermove', 10, 20);
@@ -805,7 +852,7 @@ describe('ol.interaction.Draw', function() {
 
     it('dispatches a drawstart event', function() {
       var spy = sinon.spy();
-      goog.events.listen(draw, ol.interaction.DrawEventType.DRAWSTART, spy);
+      ol.events.listen(draw, ol.interaction.DrawEventType.DRAWSTART, spy);
       draw.extend(feature);
       expect(spy.callCount).to.be(1);
     });
@@ -813,10 +860,8 @@ describe('ol.interaction.Draw', function() {
   });
 });
 
-goog.require('goog.dispose');
-goog.require('goog.events');
-goog.require('goog.events.BrowserEvent');
-goog.require('goog.style');
+goog.require('ol.array');
+goog.require('ol.events');
 goog.require('ol.Feature');
 goog.require('ol.Map');
 goog.require('ol.MapBrowserPointerEvent');

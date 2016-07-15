@@ -13,7 +13,7 @@ describe('ol.layer.VectorTile', function() {
     });
 
     afterEach(function() {
-      goog.dispose(layer);
+      layer.dispose();
     });
 
     it('creates an instance', function() {
@@ -28,10 +28,32 @@ describe('ol.layer.VectorTile', function() {
       expect(layer.getUseInterimTilesOnError()).to.be(true);
     });
 
+    it('provides default renderMode', function() {
+      expect(layer.getRenderMode()).to.be('hybrid');
+    });
+
+  });
+
+  describe('constructor (options)', function() {
+    var layer = new ol.layer.VectorTile({
+      renderMode: 'vector',
+      source: new ol.source.VectorTile({})
+    });
+    expect(layer.getRenderMode()).to.be('vector');
+    layer = new ol.layer.VectorTile({
+      renderMode: 'image',
+      source: new ol.source.VectorTile({})
+    });
+    expect(layer.getRenderMode()).to.be('image');
+    expect(function() {
+      layer = new ol.layer.VectorTile({
+        renderMode: 'foo',
+        source: new ol.source.VectorTile({})
+      });
+    }).to.throwException();
   });
 
 });
 
-goog.require('goog.dispose');
 goog.require('ol.layer.VectorTile');
 goog.require('ol.source.VectorTile');

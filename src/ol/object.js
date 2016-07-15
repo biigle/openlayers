@@ -2,9 +2,10 @@ goog.provide('ol.Object');
 goog.provide('ol.ObjectEvent');
 goog.provide('ol.ObjectEventType');
 
-goog.require('goog.events');
-goog.require('goog.events.Event');
 goog.require('ol.Observable');
+goog.require('ol.events');
+goog.require('ol.events.Event');
+goog.require('ol.object');
 
 
 /**
@@ -20,7 +21,6 @@ ol.ObjectEventType = {
 };
 
 
-
 /**
  * @classdesc
  * Events emitted by {@link ol.Object} instances are instances of this type.
@@ -28,12 +28,12 @@ ol.ObjectEventType = {
  * @param {string} type The event type.
  * @param {string} key The property name.
  * @param {*} oldValue The old value for `key`.
- * @extends {goog.events.Event}
+ * @extends {ol.events.Event}
  * @implements {oli.ObjectEvent}
  * @constructor
  */
 ol.ObjectEvent = function(type, key, oldValue) {
-  goog.base(this, type);
+  ol.events.Event.call(this, type);
 
   /**
    * The name of the property whose value is changing.
@@ -51,8 +51,7 @@ ol.ObjectEvent = function(type, key, oldValue) {
   this.oldValue = oldValue;
 
 };
-goog.inherits(ol.ObjectEvent, goog.events.Event);
-
+ol.inherits(ol.ObjectEvent, ol.events.Event);
 
 
 /**
@@ -101,7 +100,7 @@ goog.inherits(ol.ObjectEvent, goog.events.Event);
  * @api
  */
 ol.Object = function(opt_values) {
-  goog.base(this);
+  ol.Observable.call(this);
 
   // Call goog.getUid to ensure that the order of objects' ids is the same as
   // the order in which they were created.  This also helps to ensure that
@@ -119,7 +118,7 @@ ol.Object = function(opt_values) {
     this.setProperties(opt_values);
   }
 };
-goog.inherits(ol.Object, ol.Observable);
+ol.inherits(ol.Object, ol.Observable);
 
 
 /**
@@ -171,12 +170,7 @@ ol.Object.prototype.getKeys = function() {
  * @api stable
  */
 ol.Object.prototype.getProperties = function() {
-  var properties = {};
-  var key;
-  for (key in this.values_) {
-    properties[key] = this.values_[key];
-  }
-  return properties;
+  return ol.object.assign({}, this.values_);
 };
 
 
@@ -206,7 +200,9 @@ ol.Object.prototype.set = function(key, value, opt_silent) {
   } else {
     var oldValue = this.values_[key];
     this.values_[key] = value;
-    this.notify(key, oldValue);
+    if (oldValue !== value) {
+      this.notify(key, oldValue);
+    }
   }
 };
 

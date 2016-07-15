@@ -1,9 +1,6 @@
 goog.provide('ol.format.IGC');
-goog.provide('ol.format.IGCZ');
 
 goog.require('goog.asserts');
-goog.require('goog.string');
-goog.require('goog.string.newlines');
 goog.require('ol.Feature');
 goog.require('ol.format.Feature');
 goog.require('ol.format.TextFeature');
@@ -15,14 +12,12 @@ goog.require('ol.proj');
 /**
  * IGC altitude/z. One of 'barometric', 'gps', 'none'.
  * @enum {string}
- * @api
  */
 ol.format.IGCZ = {
   BAROMETRIC: 'barometric',
   GPS: 'gps',
   NONE: 'none'
 };
-
 
 
 /**
@@ -38,7 +33,7 @@ ol.format.IGC = function(opt_options) {
 
   var options = opt_options ? opt_options : {};
 
-  goog.base(this);
+  ol.format.TextFeature.call(this);
 
   /**
    * @inheritDoc
@@ -53,7 +48,7 @@ ol.format.IGC = function(opt_options) {
       options.altitudeMode : ol.format.IGCZ.NONE;
 
 };
-goog.inherits(ol.format.IGC, ol.format.TextFeature);
+ol.inherits(ol.format.IGC, ol.format.TextFeature);
 
 
 /**
@@ -90,6 +85,16 @@ ol.format.IGC.HFDTE_RECORD_RE_ = /^HFDTE(\d{2})(\d{2})(\d{2})/;
 
 
 /**
+ * A regular expression matching the newline characters `\r\n`, `\r` and `\n`.
+ *
+ * @const
+ * @type {RegExp}
+ * @private
+ */
+ol.format.IGC.NEWLINE_RE_ = /\r\n|\r|\n/;
+
+
+/**
  * @inheritDoc
  */
 ol.format.IGC.prototype.getExtensions = function() {
@@ -114,13 +119,14 @@ ol.format.IGC.prototype.readFeature;
  */
 ol.format.IGC.prototype.readFeatureFromText = function(text, opt_options) {
   var altitudeMode = this.altitudeMode_;
-  var lines = goog.string.newlines.splitLines(text);
+  var lines = text.split(ol.format.IGC.NEWLINE_RE_);
   /** @type {Object.<string, string>} */
   var properties = {};
   var flatCoordinates = [];
   var year = 2000;
   var month = 0;
   var day = 1;
+  var lastDateTime = -1;
   var i, ii;
   for (i = 0, ii = lines.length; i < ii; ++i) {
     var line = lines[i];
@@ -153,7 +159,12 @@ ol.format.IGC.prototype.readFeatureFromText = function(text, opt_options) {
           flatCoordinates.push(z);
         }
         var dateTime = Date.UTC(year, month, day, hour, minute, second);
+        // Detect UTC midnight wrap around.
+        if (dateTime < lastDateTime) {
+          dateTime = Date.UTC(year, month, day + 1, hour, minute, second);
+        }
         flatCoordinates.push(dateTime / 1000);
+        lastDateTime = dateTime;
       }
     } else if (line.charAt(0) == 'H') {
       m = ol.format.IGC.HFDTE_RECORD_RE_.exec(line);
@@ -165,7 +176,6 @@ ol.format.IGC.prototype.readFeatureFromText = function(text, opt_options) {
         m = ol.format.IGC.H_RECORD_RE_.exec(line);
         if (m) {
           properties[m[1]] = m[2].trim();
-          m = ol.format.IGC.HFDTE_RECORD_RE_.exec(line);
         }
       }
     }

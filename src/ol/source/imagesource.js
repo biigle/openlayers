@@ -1,28 +1,14 @@
 goog.provide('ol.source.Image');
 goog.provide('ol.source.ImageEvent');
 
-goog.require('goog.array');
 goog.require('goog.asserts');
-goog.require('goog.events.Event');
-goog.require('ol.Attribution');
+goog.require('ol.events.Event');
 goog.require('ol.ImageState');
 goog.require('ol.array');
 goog.require('ol.extent');
 goog.require('ol.proj');
 goog.require('ol.reproj.Image');
 goog.require('ol.source.Source');
-
-
-/**
- * @typedef {{attributions: (Array.<ol.Attribution>|undefined),
- *            extent: (null|ol.Extent|undefined),
- *            logo: (string|olx.LogoOptions|undefined),
- *            projection: ol.proj.ProjectionLike,
- *            resolutions: (Array.<number>|undefined),
- *            state: (ol.source.State|undefined)}}
- */
-ol.source.ImageOptions;
-
 
 
 /**
@@ -33,12 +19,12 @@ ol.source.ImageOptions;
  *
  * @constructor
  * @extends {ol.source.Source}
- * @param {ol.source.ImageOptions} options Single image source options.
+ * @param {ol.SourceImageOptions} options Single image source options.
  * @api
  */
 ol.source.Image = function(options) {
 
-  goog.base(this, {
+  ol.source.Source.call(this, {
     attributions: options.attributions,
     extent: options.extent,
     logo: options.logo,
@@ -53,7 +39,7 @@ ol.source.Image = function(options) {
   this.resolutions_ = options.resolutions !== undefined ?
       options.resolutions : null;
   goog.asserts.assert(!this.resolutions_ ||
-      goog.array.isSorted(this.resolutions_,
+      ol.array.isSorted(this.resolutions_,
           function(a, b) {
             return b - a;
           }, true), 'resolutions must be null or sorted in descending order');
@@ -73,7 +59,7 @@ ol.source.Image = function(options) {
   this.reprojectedRevision_ = 0;
 
 };
-goog.inherits(ol.source.Image, ol.source.Source);
+ol.inherits(ol.source.Image, ol.source.Source);
 
 
 /**
@@ -89,8 +75,7 @@ ol.source.Image.prototype.getResolutions = function() {
  * @param {number} resolution Resolution.
  * @return {number} Resolution.
  */
-ol.source.Image.prototype.findNearestResolution =
-    function(resolution) {
+ol.source.Image.prototype.findNearestResolution = function(resolution) {
   if (this.resolutions_) {
     var idx = ol.array.linearFindNearest(this.resolutions_, resolution, 0);
     resolution = this.resolutions_[idx];
@@ -106,8 +91,7 @@ ol.source.Image.prototype.findNearestResolution =
  * @param {ol.proj.Projection} projection Projection.
  * @return {ol.ImageBase} Single image.
  */
-ol.source.Image.prototype.getImage =
-    function(extent, resolution, pixelRatio, projection) {
+ol.source.Image.prototype.getImage = function(extent, resolution, pixelRatio, projection) {
   var sourceProjection = this.getProjection();
   if (!ol.ENABLE_RASTER_REPROJECTION ||
       !sourceProjection ||
@@ -133,10 +117,10 @@ ol.source.Image.prototype.getImage =
 
     this.reprojectedImage_ = new ol.reproj.Image(
         sourceProjection, projection, extent, resolution, pixelRatio,
-        goog.bind(function(extent, resolution, pixelRatio) {
+        function(extent, resolution, pixelRatio) {
           return this.getImageInternal(extent, resolution,
               pixelRatio, sourceProjection);
-        }, this));
+        }.bind(this));
     this.reprojectedRevision_ = this.getRevision();
 
     return this.reprojectedImage_;
@@ -157,7 +141,7 @@ ol.source.Image.prototype.getImageInternal = goog.abstractMethod;
 
 /**
  * Handle image change events.
- * @param {goog.events.Event} event Event.
+ * @param {ol.events.Event} event Event.
  * @protected
  */
 ol.source.Image.prototype.handleImageChange = function(event) {
@@ -178,6 +162,8 @@ ol.source.Image.prototype.handleImageChange = function(event) {
           new ol.source.ImageEvent(ol.source.ImageEventType.IMAGELOADERROR,
               image));
       break;
+    default:
+      // pass
   }
 };
 
@@ -193,21 +179,20 @@ ol.source.Image.defaultImageLoadFunction = function(image, src) {
 };
 
 
-
 /**
  * @classdesc
  * Events emitted by {@link ol.source.Image} instances are instances of this
  * type.
  *
  * @constructor
- * @extends {goog.events.Event}
+ * @extends {ol.events.Event}
  * @implements {oli.source.ImageEvent}
  * @param {string} type Type.
  * @param {ol.Image} image The image.
  */
 ol.source.ImageEvent = function(type, image) {
 
-  goog.base(this, type);
+  ol.events.Event.call(this, type);
 
   /**
    * The image related to the event.
@@ -217,7 +202,7 @@ ol.source.ImageEvent = function(type, image) {
   this.image = image;
 
 };
-goog.inherits(ol.source.ImageEvent, goog.events.Event);
+ol.inherits(ol.source.ImageEvent, ol.events.Event);
 
 
 /**

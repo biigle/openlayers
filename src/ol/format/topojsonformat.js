@@ -1,7 +1,6 @@
 goog.provide('ol.format.TopoJSON');
 
 goog.require('goog.asserts');
-goog.require('goog.object');
 goog.require('ol.Feature');
 goog.require('ol.format.Feature');
 goog.require('ol.format.JSONFeature');
@@ -11,8 +10,8 @@ goog.require('ol.geom.MultiPoint');
 goog.require('ol.geom.MultiPolygon');
 goog.require('ol.geom.Point');
 goog.require('ol.geom.Polygon');
+goog.require('ol.object');
 goog.require('ol.proj');
-
 
 
 /**
@@ -28,7 +27,7 @@ ol.format.TopoJSON = function(opt_options) {
 
   var options = opt_options ? opt_options : {};
 
-  goog.base(this);
+  ol.format.JSONFeature.call(this);
 
   /**
    * @inheritDoc
@@ -38,7 +37,7 @@ ol.format.TopoJSON = function(opt_options) {
           options.defaultDataProjection : 'EPSG:4326');
 
 };
-goog.inherits(ol.format.TopoJSON, ol.format.JSONFeature);
+ol.inherits(ol.format.TopoJSON, ol.format.JSONFeature);
 
 
 /**
@@ -300,7 +299,7 @@ ol.format.TopoJSON.prototype.readFeaturesFromObject = function(
     }
     /** @type {Array.<ol.Feature>} */
     var features = [];
-    var topoJSONFeatures = goog.object.getValues(topoJSONTopology.objects);
+    var topoJSONFeatures = ol.object.getValues(topoJSONTopology.objects);
     var i, ii;
     var feature;
     for (i = 0, ii = topoJSONFeatures.length; i < ii; ++i) {

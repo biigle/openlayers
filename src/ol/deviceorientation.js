@@ -1,7 +1,6 @@
 goog.provide('ol.DeviceOrientation');
-goog.provide('ol.DeviceOrientationProperty');
 
-goog.require('goog.events');
+goog.require('ol.events');
 goog.require('ol');
 goog.require('ol.Object');
 goog.require('ol.has');
@@ -18,7 +17,6 @@ ol.DeviceOrientationProperty = {
   HEADING: 'heading',
   TRACKING: 'tracking'
 };
-
 
 
 /**
@@ -66,10 +64,10 @@ ol.DeviceOrientationProperty = {
  * equivalent properties in ol.DeviceOrientation are in radians for consistency
  * with all other uses of angles throughout OpenLayers.
  *
- * @see http://www.w3.org/TR/orientation-event/
- *
  * To get notified of device orientation changes, register a listener for the
  * generic `change` event on your `ol.DeviceOrientation` instance.
+ *
+ * @see {@link http://www.w3.org/TR/orientation-event/}
  *
  * @constructor
  * @extends {ol.Object}
@@ -78,24 +76,24 @@ ol.DeviceOrientationProperty = {
  */
 ol.DeviceOrientation = function(opt_options) {
 
-  goog.base(this);
+  ol.Object.call(this);
 
   var options = opt_options ? opt_options : {};
 
   /**
    * @private
-   * @type {goog.events.Key}
+   * @type {?ol.EventsKey}
    */
   this.listenerKey_ = null;
 
-  goog.events.listen(this,
+  ol.events.listen(this,
       ol.Object.getChangeEventType(ol.DeviceOrientationProperty.TRACKING),
-      this.handleTrackingChanged_, false, this);
+      this.handleTrackingChanged_, this);
 
   this.setTracking(options.tracking !== undefined ? options.tracking : false);
 
 };
-goog.inherits(ol.DeviceOrientation, ol.Object);
+ol.inherits(ol.DeviceOrientation, ol.Object);
 
 
 /**
@@ -103,22 +101,21 @@ goog.inherits(ol.DeviceOrientation, ol.Object);
  */
 ol.DeviceOrientation.prototype.disposeInternal = function() {
   this.setTracking(false);
-  goog.base(this, 'disposeInternal');
+  ol.Object.prototype.disposeInternal.call(this);
 };
 
 
 /**
  * @private
- * @param {goog.events.BrowserEvent} browserEvent Event.
+ * @param {Event} originalEvent Event.
  */
-ol.DeviceOrientation.prototype.orientationChange_ = function(browserEvent) {
-  var event = /** @type {DeviceOrientationEvent} */
-      (browserEvent.getBrowserEvent());
+ol.DeviceOrientation.prototype.orientationChange_ = function(originalEvent) {
+  var event = /** @type {DeviceOrientationEvent} */ (originalEvent);
   if (event.alpha !== null) {
     var alpha = ol.math.toRadians(event.alpha);
     this.set(ol.DeviceOrientationProperty.ALPHA, alpha);
     // event.absolute is undefined in iOS.
-    if (goog.isBoolean(event.absolute) && event.absolute) {
+    if (typeof event.absolute === 'boolean' && event.absolute) {
       this.set(ol.DeviceOrientationProperty.HEADING, alpha);
     } else if (goog.isNumber(event.webkitCompassHeading) &&
                event.webkitCompassAccuracy != -1) {
@@ -209,10 +206,10 @@ ol.DeviceOrientation.prototype.handleTrackingChanged_ = function() {
   if (ol.has.DEVICE_ORIENTATION) {
     var tracking = this.getTracking();
     if (tracking && !this.listenerKey_) {
-      this.listenerKey_ = goog.events.listen(goog.global, 'deviceorientation',
-          this.orientationChange_, false, this);
-    } else if (!tracking && this.listenerKey_) {
-      goog.events.unlistenByKey(this.listenerKey_);
+      this.listenerKey_ = ol.events.listen(ol.global, 'deviceorientation',
+          this.orientationChange_, this);
+    } else if (!tracking && this.listenerKey_ !== null) {
+      ol.events.unlistenByKey(this.listenerKey_);
       this.listenerKey_ = null;
     }
   }

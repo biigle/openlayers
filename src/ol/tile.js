@@ -1,10 +1,9 @@
 goog.provide('ol.Tile');
 goog.provide('ol.TileState');
 
-goog.require('goog.events');
-goog.require('goog.events.EventTarget');
-goog.require('goog.events.EventType');
-goog.require('ol.TileCoord');
+goog.require('ol.events');
+goog.require('ol.events.EventTarget');
+goog.require('ol.events.EventType');
 
 
 /**
@@ -15,9 +14,9 @@ ol.TileState = {
   LOADING: 1,
   LOADED: 2,
   ERROR: 3,
-  EMPTY: 4
+  EMPTY: 4,
+  ABORT: 5
 };
-
 
 
 /**
@@ -25,13 +24,13 @@ ol.TileState = {
  * Base class for tiles.
  *
  * @constructor
- * @extends {goog.events.EventTarget}
+ * @extends {ol.events.EventTarget}
  * @param {ol.TileCoord} tileCoord Tile coordinate.
  * @param {ol.TileState} state State.
  */
 ol.Tile = function(tileCoord, state) {
 
-  goog.base(this);
+  ol.events.EventTarget.call(this);
 
   /**
    * @type {ol.TileCoord}
@@ -44,15 +43,31 @@ ol.Tile = function(tileCoord, state) {
    */
   this.state = state;
 
+  /**
+   * An "interim" tile for this tile. The interim tile may be used while this
+   * one is loading, for "smooth" transitions when changing params/dimensions
+   * on the source.
+   * @type {ol.Tile}
+   */
+  this.interimTile = null;
+
+  /**
+   * A key assigned to the tile. This is used by the tile source to determine
+   * if this tile can effectively be used, or if a new tile should be created
+   * and this one be used as an interim tile for this new tile.
+   * @type {string}
+   */
+  this.key = '';
+
 };
-goog.inherits(ol.Tile, goog.events.EventTarget);
+ol.inherits(ol.Tile, ol.events.EventTarget);
 
 
 /**
  * @protected
  */
 ol.Tile.prototype.changed = function() {
-  this.dispatchEvent(goog.events.EventType.CHANGE);
+  this.dispatchEvent(ol.events.EventType.CHANGE);
 };
 
 
@@ -75,7 +90,7 @@ ol.Tile.prototype.getKey = function() {
 
 /**
  * Get the tile coordinate for this tile.
- * @return {ol.TileCoord}
+ * @return {ol.TileCoord} The tile coordinate.
  * @api
  */
 ol.Tile.prototype.getTileCoord = function() {
@@ -92,6 +107,9 @@ ol.Tile.prototype.getState = function() {
 
 
 /**
- * FIXME empty description for jsdoc
+ * Load the image or retry if loading previously failed.
+ * Loading is taken care of by the tile queue, and calling this method is
+ * only needed for preloading or for reloading in case of an error.
+ * @api
  */
 ol.Tile.prototype.load = goog.abstractMethod;

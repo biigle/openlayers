@@ -3,13 +3,13 @@
 
 goog.provide('ol.renderer.webgl.TileLayer');
 
-goog.require('goog.array');
 goog.require('goog.asserts');
 goog.require('goog.vec.Mat4');
 goog.require('goog.vec.Vec4');
 goog.require('goog.webgl');
 goog.require('ol.TileRange');
 goog.require('ol.TileState');
+goog.require('ol.array');
 goog.require('ol.extent');
 goog.require('ol.layer.Tile');
 goog.require('ol.math');
@@ -18,10 +18,8 @@ goog.require('ol.renderer.webgl.tilelayer.shader.Fragment');
 goog.require('ol.renderer.webgl.tilelayer.shader.Locations');
 goog.require('ol.renderer.webgl.tilelayer.shader.Vertex');
 goog.require('ol.size');
-goog.require('ol.tilecoord');
 goog.require('ol.vec.Mat4');
 goog.require('ol.webgl.Buffer');
-
 
 
 /**
@@ -32,7 +30,7 @@ goog.require('ol.webgl.Buffer');
  */
 ol.renderer.webgl.TileLayer = function(mapRenderer, tileLayer) {
 
-  goog.base(this, mapRenderer, tileLayer);
+  ol.renderer.webgl.Layer.call(this, mapRenderer, tileLayer);
 
   /**
    * @private
@@ -89,7 +87,7 @@ ol.renderer.webgl.TileLayer = function(mapRenderer, tileLayer) {
   this.tmpSize_ = [0, 0];
 
 };
-goog.inherits(ol.renderer.webgl.TileLayer, ol.renderer.webgl.Layer);
+ol.inherits(ol.renderer.webgl.TileLayer, ol.renderer.webgl.Layer);
 
 
 /**
@@ -98,7 +96,7 @@ goog.inherits(ol.renderer.webgl.TileLayer, ol.renderer.webgl.Layer);
 ol.renderer.webgl.TileLayer.prototype.disposeInternal = function() {
   var context = this.mapRenderer.getContext();
   context.deleteBuffer(this.renderArrayBuffer_);
-  goog.base(this, 'disposeInternal');
+  ol.renderer.webgl.Layer.prototype.disposeInternal.call(this);
 };
 
 
@@ -113,8 +111,7 @@ ol.renderer.webgl.TileLayer.prototype.disposeInternal = function() {
  *     lookup.
  * @protected
  */
-ol.renderer.webgl.TileLayer.prototype.createLoadedTileFinder =
-    function(source, projection, tiles) {
+ol.renderer.webgl.TileLayer.prototype.createLoadedTileFinder = function(source, projection, tiles) {
   var mapRenderer = this.mapRenderer;
 
   return (
@@ -124,17 +121,17 @@ ol.renderer.webgl.TileLayer.prototype.createLoadedTileFinder =
        * @return {boolean} The tile range is fully loaded.
        */
       function(zoom, tileRange) {
-        return source.forEachLoadedTile(projection, zoom,
-                                        tileRange, function(tile) {
-              var loaded = mapRenderer.isTileTextureLoaded(tile);
-              if (loaded) {
-                if (!tiles[zoom]) {
-                  tiles[zoom] = {};
-                }
-                tiles[zoom][tile.tileCoord.toString()] = tile;
-              }
-              return loaded;
-            });
+        function callback(tile) {
+          var loaded = mapRenderer.isTileTextureLoaded(tile);
+          if (loaded) {
+            if (!tiles[zoom]) {
+              tiles[zoom] = {};
+            }
+            tiles[zoom][tile.tileCoord.toString()] = tile;
+          }
+          return loaded;
+        }
+        return source.forEachLoadedTile(projection, zoom, tileRange, callback);
       });
 };
 
@@ -143,7 +140,7 @@ ol.renderer.webgl.TileLayer.prototype.createLoadedTileFinder =
  * @inheritDoc
  */
 ol.renderer.webgl.TileLayer.prototype.handleWebGLContextLost = function() {
-  goog.base(this, 'handleWebGLContextLost');
+  ol.renderer.webgl.Layer.prototype.handleWebGLContextLost.call(this);
   this.locations_ = null;
 };
 
@@ -151,8 +148,7 @@ ol.renderer.webgl.TileLayer.prototype.handleWebGLContextLost = function() {
 /**
  * @inheritDoc
  */
-ol.renderer.webgl.TileLayer.prototype.prepareFrame =
-    function(frameState, layerState, context) {
+ol.renderer.webgl.TileLayer.prototype.prepareFrame = function(frameState, layerState, context) {
 
   var mapRenderer = this.mapRenderer;
   var gl = context.getGL();
@@ -173,7 +169,7 @@ ol.renderer.webgl.TileLayer.prototype.prepareFrame =
   var pixelRatio = tilePixelSize[0] /
       ol.size.toSize(tileGrid.getTileSize(z), this.tmpSize_)[0];
   var tilePixelResolution = tileResolution / pixelRatio;
-  var tileGutter = tileSource.getGutter();
+  var tileGutter = tileSource.getGutter(projection);
 
   var center = viewState.center;
   var extent;
@@ -247,7 +243,8 @@ ol.renderer.webgl.TileLayer.prototype.prepareFrame =
     var allTilesLoaded = true;
     var tmpExtent = ol.extent.createEmpty();
     var tmpTileRange = new ol.TileRange(0, 0, 0, 0);
-    var childTileRange, fullyLoaded, tile, tileState, x, y, tileExtent;
+    var childTileRange, drawable, fullyLoaded, tile, tileState;
+    var x, y, tileExtent;
     for (x = tileRange.minX; x <= tileRange.maxX; ++x) {
       for (y = tileRange.minY; y <= tileRange.maxY; ++y) {
 
@@ -260,9 +257,17 @@ ol.renderer.webgl.TileLayer.prototype.prepareFrame =
           }
         }
         tileState = tile.getState();
+        drawable = tileState == ol.TileState.LOADED ||
+            tileState == ol.TileState.EMPTY ||
+            tileState == ol.TileState.ERROR && !useInterimTilesOnError;
+        if (!drawable && tile.interimTile) {
+          tile = tile.interimTile;
+        }
+        goog.asserts.assert(tile);
+        tileState = tile.getState();
         if (tileState == ol.TileState.LOADED) {
           if (mapRenderer.isTileTextureLoaded(tile)) {
-            tilesToDrawByZ[z][ol.tilecoord.toString(tile.tileCoord)] = tile;
+            tilesToDrawByZ[z][tile.tileCoord.toString()] = tile;
             continue;
           }
         } else if (tileState == ol.TileState.EMPTY ||
@@ -288,7 +293,7 @@ ol.renderer.webgl.TileLayer.prototype.prepareFrame =
 
     /** @type {Array.<number>} */
     var zs = Object.keys(tilesToDrawByZ).map(Number);
-    goog.array.sort(zs);
+    zs.sort(ol.array.numberSafeCompareFunction);
     var u_tileOffset = goog.vec.Vec4.createFloat32();
     var i, ii, sx, sy, tileKey, tilesToDraw, tx, ty;
     for (i = 0, ii = zs.length; i < ii; ++i) {
@@ -377,8 +382,7 @@ ol.renderer.webgl.TileLayer.prototype.prepareFrame =
 /**
  * @inheritDoc
  */
-ol.renderer.webgl.TileLayer.prototype.forEachLayerAtPixel =
-    function(pixel, frameState, callback, thisArg) {
+ol.renderer.webgl.TileLayer.prototype.forEachLayerAtPixel = function(pixel, frameState, callback, thisArg) {
   if (!this.framebuffer) {
     return undefined;
   }

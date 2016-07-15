@@ -8,7 +8,7 @@ describe('ol.source.TileImage', function() {
       tileGrid: opt_tileGrid ||
           ol.tilegrid.createForProjection(proj, undefined, [2, 2]),
       tileUrlFunction: ol.TileUrlFunction.createFromTemplate(
-          'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=')
+          'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=')
     });
   }
 
@@ -20,6 +20,75 @@ describe('ol.source.TileImage', function() {
       var retrieved = source.getTileGridForProjection(ol.proj.get('EPSG:4326'));
       expect(retrieved).to.be(tileGrid);
     });
+  });
+
+  describe('#getTileInternal', function() {
+    var source, tile;
+
+    beforeEach(function() {
+      source = createSource();
+      expect(source.getKey()).to.be('');
+      source.getTileInternal(0, 0, -1, 1, ol.proj.get('EPSG:3857'));
+      expect(source.tileCache.getCount()).to.be(1);
+      tile = source.tileCache.get(source.getKeyZXY(0, 0, -1));
+    });
+
+    it('gets the tile from the cache', function() {
+      var returnedTile = source.getTileInternal(
+          0, 0, -1, 1, ol.proj.get('EPSG:3857'));
+      expect(returnedTile).to.be(tile);
+    });
+
+    describe('change a dynamic param', function() {
+
+      describe('tile is not loaded', function() {
+        it('returns a tile with no interim tile', function() {
+          source.getKey = function() {
+            return 'key0';
+          };
+          var returnedTile = source.getTileInternal(
+              0, 0, -1, 1, ol.proj.get('EPSG:3857'));
+          expect(returnedTile).not.to.be(tile);
+          expect(returnedTile.key).to.be('key0');
+          expect(returnedTile.interimTile).to.be(null);
+        });
+      });
+
+      describe('tile is loaded', function() {
+        it('returns a tile with interim tile', function() {
+          source.getKey = function() {
+            return 'key0';
+          };
+          tile.state = ol.TileState.LOADED;
+          var returnedTile = source.getTileInternal(
+              0, 0, -1, 1, ol.proj.get('EPSG:3857'));
+          expect(returnedTile).not.to.be(tile);
+          expect(returnedTile.key).to.be('key0');
+          expect(returnedTile.interimTile).to.be(tile);
+        });
+      });
+
+      describe('tile is not loaded but interim tile is', function() {
+        it('returns a tile with interim tile', function() {
+          var dynamicParamsKey, returnedTile;
+          source.getKey = function() {
+            return dynamicParamsKey;
+          };
+          dynamicParamsKey = 'key0';
+          tile.state = ol.TileState.LOADED;
+          returnedTile = source.getTileInternal(
+              0, 0, -1, 1, ol.proj.get('EPSG:3857'));
+          dynamicParamsKey = 'key1';
+          returnedTile = source.getTileInternal(
+              0, 0, -1, 1, ol.proj.get('EPSG:3857'));
+          expect(returnedTile).not.to.be(tile);
+          expect(returnedTile.key).to.be('key1');
+          expect(returnedTile.interimTile).to.be(tile);
+        });
+      });
+
+    });
+
   });
 
   describe('#getTile', function() {
@@ -55,7 +124,7 @@ describe('ol.source.TileImage', function() {
       var tile = source.getTile(0, 0, -1, 1, ol.proj.get('EPSG:3857'));
       expect(tile).to.be.a(ol.reproj.Tile);
 
-      tile.listen('change', function() {
+      ol.events.listen(tile, 'change', function() {
         if (tile.getState() == ol.TileState.LOADED) {
           done();
         }
@@ -74,7 +143,7 @@ describe('ol.source.TileImage', function() {
       var tile = source.getTile(0, 0, -1, 1, proj);
       expect(tile).to.be.a(ol.reproj.Tile);
 
-      tile.listen('change', function() {
+      ol.events.listen(tile, 'change', function() {
         if (tile.getState() == ol.TileState.LOADED) {
           done();
         }
@@ -88,6 +157,7 @@ goog.require('ol.ImageTile');
 goog.require('ol.Tile');
 goog.require('ol.TileState');
 goog.require('ol.TileUrlFunction');
+goog.require('ol.events');
 goog.require('ol.proj');
 goog.require('ol.proj.Projection');
 goog.require('ol.reproj.Tile');

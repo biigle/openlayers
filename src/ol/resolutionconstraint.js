@@ -1,22 +1,14 @@
 goog.provide('ol.ResolutionConstraint');
-goog.provide('ol.ResolutionConstraintType');
 
 goog.require('ol.array');
 goog.require('ol.math');
 
 
 /**
- * @typedef {function((number|undefined), number, number): (number|undefined)}
- */
-ol.ResolutionConstraintType;
-
-
-/**
  * @param {Array.<number>} resolutions Resolutions.
  * @return {ol.ResolutionConstraintType} Zoom function.
  */
-ol.ResolutionConstraint.createSnapToResolutions =
-    function(resolutions) {
+ol.ResolutionConstraint.createSnapToResolutions = function(resolutions) {
   return (
       /**
        * @param {number|undefined} resolution Resolution.
@@ -43,8 +35,7 @@ ol.ResolutionConstraint.createSnapToResolutions =
  * @param {number=} opt_maxLevel Maximum level.
  * @return {ol.ResolutionConstraintType} Zoom function.
  */
-ol.ResolutionConstraint.createSnapToPower =
-    function(power, maxResolution, opt_maxLevel) {
+ol.ResolutionConstraint.createSnapToPower = function(power, maxResolution, opt_maxLevel) {
   return (
       /**
        * @param {number|undefined} resolution Resolution.

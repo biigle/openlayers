@@ -7,16 +7,15 @@ goog.provide('ol.renderer.webgl.map.shader.DefaultVertex');
 goog.require('ol.webgl.shader');
 
 
-
 /**
  * @constructor
  * @extends {ol.webgl.shader.Fragment}
  * @struct
  */
 ol.renderer.webgl.map.shader.DefaultFragment = function() {
-  goog.base(this, ol.renderer.webgl.map.shader.DefaultFragment.SOURCE);
+  ol.webgl.shader.Fragment.call(this, ol.renderer.webgl.map.shader.DefaultFragment.SOURCE);
 };
-goog.inherits(ol.renderer.webgl.map.shader.DefaultFragment, ol.webgl.shader.Fragment);
+ol.inherits(ol.renderer.webgl.map.shader.DefaultFragment, ol.webgl.shader.Fragment);
 goog.addSingletonGetter(ol.renderer.webgl.map.shader.DefaultFragment);
 
 
@@ -43,16 +42,15 @@ ol.renderer.webgl.map.shader.DefaultFragment.SOURCE = goog.DEBUG ?
     ol.renderer.webgl.map.shader.DefaultFragment.OPTIMIZED_SOURCE;
 
 
-
 /**
  * @constructor
  * @extends {ol.webgl.shader.Vertex}
  * @struct
  */
 ol.renderer.webgl.map.shader.DefaultVertex = function() {
-  goog.base(this, ol.renderer.webgl.map.shader.DefaultVertex.SOURCE);
+  ol.webgl.shader.Vertex.call(this, ol.renderer.webgl.map.shader.DefaultVertex.SOURCE);
 };
-goog.inherits(ol.renderer.webgl.map.shader.DefaultVertex, ol.webgl.shader.Vertex);
+ol.inherits(ol.renderer.webgl.map.shader.DefaultVertex, ol.webgl.shader.Vertex);
 goog.addSingletonGetter(ol.renderer.webgl.map.shader.DefaultVertex);
 
 
@@ -77,7 +75,6 @@ ol.renderer.webgl.map.shader.DefaultVertex.OPTIMIZED_SOURCE = 'varying vec2 a;at
 ol.renderer.webgl.map.shader.DefaultVertex.SOURCE = goog.DEBUG ?
     ol.renderer.webgl.map.shader.DefaultVertex.DEBUG_SOURCE :
     ol.renderer.webgl.map.shader.DefaultVertex.OPTIMIZED_SOURCE;
-
 
 
 /**

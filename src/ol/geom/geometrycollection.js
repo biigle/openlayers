@@ -1,12 +1,11 @@
 goog.provide('ol.geom.GeometryCollection');
 
-goog.require('goog.events');
-goog.require('goog.events.EventType');
-goog.require('goog.object');
+goog.require('ol.events');
+goog.require('ol.events.EventType');
 goog.require('ol.extent');
 goog.require('ol.geom.Geometry');
 goog.require('ol.geom.GeometryType');
-
+goog.require('ol.object');
 
 
 /**
@@ -20,7 +19,7 @@ goog.require('ol.geom.GeometryType');
  */
 ol.geom.GeometryCollection = function(opt_geometries) {
 
-  goog.base(this);
+  ol.geom.Geometry.call(this);
 
   /**
    * @private
@@ -30,7 +29,7 @@ ol.geom.GeometryCollection = function(opt_geometries) {
 
   this.listenGeometriesChange_();
 };
-goog.inherits(ol.geom.GeometryCollection, ol.geom.Geometry);
+ol.inherits(ol.geom.GeometryCollection, ol.geom.Geometry);
 
 
 /**
@@ -57,9 +56,9 @@ ol.geom.GeometryCollection.prototype.unlistenGeometriesChange_ = function() {
     return;
   }
   for (i = 0, ii = this.geometries_.length; i < ii; ++i) {
-    goog.events.unlisten(
-        this.geometries_[i], goog.events.EventType.CHANGE,
-        this.changed, false, this);
+    ol.events.unlisten(
+        this.geometries_[i], ol.events.EventType.CHANGE,
+        this.changed, this);
   }
 };
 
@@ -73,9 +72,9 @@ ol.geom.GeometryCollection.prototype.listenGeometriesChange_ = function() {
     return;
   }
   for (i = 0, ii = this.geometries_.length; i < ii; ++i) {
-    goog.events.listen(
-        this.geometries_[i], goog.events.EventType.CHANGE,
-        this.changed, false, this);
+    ol.events.listen(
+        this.geometries_[i], ol.events.EventType.CHANGE,
+        this.changed, this);
   }
 };
 
@@ -95,8 +94,7 @@ ol.geom.GeometryCollection.prototype.clone = function() {
 /**
  * @inheritDoc
  */
-ol.geom.GeometryCollection.prototype.closestPointXY =
-    function(x, y, closestPoint, minSquaredDistance) {
+ol.geom.GeometryCollection.prototype.closestPointXY = function(x, y, closestPoint, minSquaredDistance) {
   if (minSquaredDistance <
       ol.extent.closestSquaredDistanceXY(this.getExtent(), x, y)) {
     return minSquaredDistance;
@@ -160,10 +158,9 @@ ol.geom.GeometryCollection.prototype.getGeometriesArray = function() {
 /**
  * @inheritDoc
  */
-ol.geom.GeometryCollection.prototype.getSimplifiedGeometry =
-    function(squaredTolerance) {
+ol.geom.GeometryCollection.prototype.getSimplifiedGeometry = function(squaredTolerance) {
   if (this.simplifiedGeometryRevision != this.getRevision()) {
-    goog.object.clear(this.simplifiedGeometryCache);
+    ol.object.clear(this.simplifiedGeometryCache);
     this.simplifiedGeometryMaxMinSquaredTolerance = 0;
     this.simplifiedGeometryRevision = this.getRevision();
   }
@@ -235,6 +232,19 @@ ol.geom.GeometryCollection.prototype.isEmpty = function() {
 
 
 /**
+ * @inheritDoc
+ * @api
+ */
+ol.geom.GeometryCollection.prototype.rotate = function(angle, anchor) {
+  var geometries = this.geometries_;
+  for (var i = 0, ii = geometries.length; i < ii; ++i) {
+    geometries[i].rotate(angle, anchor);
+  }
+  this.changed();
+};
+
+
+/**
  * Set the geometries that make up this geometry collection.
  * @param {Array.<ol.geom.Geometry>} geometries Geometries.
  * @api stable
@@ -291,5 +301,5 @@ ol.geom.GeometryCollection.prototype.translate = function(deltaX, deltaY) {
  */
 ol.geom.GeometryCollection.prototype.disposeInternal = function() {
   this.unlistenGeometriesChange_();
-  goog.base(this, 'disposeInternal');
+  ol.geom.Geometry.prototype.disposeInternal.call(this);
 };

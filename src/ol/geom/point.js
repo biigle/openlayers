@@ -8,7 +8,6 @@ goog.require('ol.geom.flat.deflate');
 goog.require('ol.math');
 
 
-
 /**
  * @classdesc
  * Point geometry.
@@ -20,10 +19,10 @@ goog.require('ol.math');
  * @api stable
  */
 ol.geom.Point = function(coordinates, opt_layout) {
-  goog.base(this);
+  ol.geom.SimpleGeometry.call(this);
   this.setCoordinates(coordinates, opt_layout);
 };
-goog.inherits(ol.geom.Point, ol.geom.SimpleGeometry);
+ol.inherits(ol.geom.Point, ol.geom.SimpleGeometry);
 
 
 /**
@@ -41,8 +40,7 @@ ol.geom.Point.prototype.clone = function() {
 /**
  * @inheritDoc
  */
-ol.geom.Point.prototype.closestPointXY =
-    function(x, y, closestPoint, minSquaredDistance) {
+ol.geom.Point.prototype.closestPointXY = function(x, y, closestPoint, minSquaredDistance) {
   var flatCoordinates = this.flatCoordinates;
   var squaredDistance = ol.math.squaredDistance(
       x, y, flatCoordinates[0], flatCoordinates[1]);

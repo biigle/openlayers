@@ -1,17 +1,15 @@
 goog.provide('ol.source.BingMaps');
 
-goog.require('goog.Uri');
 goog.require('goog.asserts');
-goog.require('goog.net.Jsonp');
 goog.require('ol.Attribution');
 goog.require('ol.TileRange');
 goog.require('ol.TileUrlFunction');
 goog.require('ol.extent');
+goog.require('ol.net');
 goog.require('ol.proj');
 goog.require('ol.source.State');
 goog.require('ol.source.TileImage');
 goog.require('ol.tilecoord');
-
 
 
 /**
@@ -25,7 +23,8 @@ goog.require('ol.tilecoord');
  */
 ol.source.BingMaps = function(options) {
 
-  goog.base(this, {
+  ol.source.TileImage.call(this, {
+    cacheSize: options.cacheSize,
     crossOrigin: 'anonymous',
     opaque: true,
     projection: ol.proj.get('EPSG:3857'),
@@ -47,19 +46,15 @@ ol.source.BingMaps = function(options) {
    */
   this.maxZoom_ = options.maxZoom !== undefined ? options.maxZoom : -1;
 
-  var uri = new goog.Uri(
-      'https://dev.virtualearth.net/REST/v1/Imagery/Metadata/' +
-      options.imagerySet);
+  var url = 'https://dev.virtualearth.net/REST/v1/Imagery/Metadata/' +
+      options.imagerySet +
+      '?uriScheme=https&include=ImageryProviders&key=' + options.key;
 
-  var jsonp = new goog.net.Jsonp(uri, 'jsonp');
-  jsonp.send({
-    'include': 'ImageryProviders',
-    'uriScheme': 'https',
-    'key': options.key
-  }, goog.bind(this.handleImageryMetadataResponse, this));
+  ol.net.jsonp(url, this.handleImageryMetadataResponse.bind(this), undefined,
+      'jsonp');
 
 };
-goog.inherits(ol.source.BingMaps, ol.source.TileImage);
+ol.inherits(ol.source.BingMaps, ol.source.TileImage);
 
 
 /**
@@ -79,8 +74,7 @@ ol.source.BingMaps.TOS_ATTRIBUTION = new ol.Attribution({
 /**
  * @param {BingMapsImageryMetadataResponse} response Response.
  */
-ol.source.BingMaps.prototype.handleImageryMetadataResponse =
-    function(response) {
+ol.source.BingMaps.prototype.handleImageryMetadataResponse = function(response) {
 
   if (response.statusCode != 200 ||
       response.statusDescription != 'OK' ||

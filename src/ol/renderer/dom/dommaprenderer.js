@@ -1,15 +1,13 @@
 goog.provide('ol.renderer.dom.Map');
 
-goog.require('goog.array');
 goog.require('goog.asserts');
-goog.require('goog.dom');
-goog.require('goog.events');
-goog.require('goog.events.Event');
-goog.require('goog.events.EventType');
-goog.require('goog.style');
+goog.require('ol.events');
+goog.require('ol.events.Event');
+goog.require('ol.events.EventType');
 goog.require('goog.vec.Mat4');
 goog.require('ol');
 goog.require('ol.RendererType');
+goog.require('ol.array');
 goog.require('ol.css');
 goog.require('ol.dom');
 goog.require('ol.layer.Image');
@@ -28,7 +26,6 @@ goog.require('ol.source.State');
 goog.require('ol.vec.Mat4');
 
 
-
 /**
  * @constructor
  * @extends {ol.renderer.Map}
@@ -37,7 +34,7 @@ goog.require('ol.vec.Mat4');
  */
 ol.renderer.dom.Map = function(container, map) {
 
-  goog.base(this, container, map);
+  ol.renderer.Map.call(this, container, map);
 
   /**
    * @private
@@ -49,7 +46,7 @@ ol.renderer.dom.Map = function(container, map) {
   canvas.style.width = '100%';
   canvas.style.height = '100%';
   canvas.className = ol.css.CLASS_UNSELECTABLE;
-  goog.dom.insertChildAt(container, canvas, 0);
+  container.insertBefore(canvas, container.childNodes[0] || null);
 
   /**
    * @private
@@ -61,7 +58,7 @@ ol.renderer.dom.Map = function(container, map) {
    * @type {!Element}
    * @private
    */
-  this.layersPane_ = goog.dom.createElement('DIV');
+  this.layersPane_ = document.createElement('DIV');
   this.layersPane_.className = ol.css.CLASS_UNSELECTABLE;
   var style = this.layersPane_.style;
   style.position = 'absolute';
@@ -69,10 +66,10 @@ ol.renderer.dom.Map = function(container, map) {
   style.height = '100%';
 
   // prevent the img context menu on mobile devices
-  goog.events.listen(this.layersPane_, goog.events.EventType.TOUCHSTART,
-      goog.events.Event.preventDefault);
+  ol.events.listen(this.layersPane_, ol.events.EventType.TOUCHSTART,
+      ol.events.Event.preventDefault);
 
-  goog.dom.insertChildAt(container, this.layersPane_, 0);
+  container.insertBefore(this.layersPane_, container.childNodes[0] || null);
 
   /**
    * @private
@@ -81,15 +78,15 @@ ol.renderer.dom.Map = function(container, map) {
   this.renderedVisible_ = true;
 
 };
-goog.inherits(ol.renderer.dom.Map, ol.renderer.Map);
+ol.inherits(ol.renderer.dom.Map, ol.renderer.Map);
 
 
 /**
  * @inheritDoc
  */
 ol.renderer.dom.Map.prototype.disposeInternal = function() {
-  goog.dom.removeNode(this.layersPane_);
-  goog.base(this, 'disposeInternal');
+  ol.dom.removeNode(this.layersPane_);
+  ol.renderer.Map.prototype.disposeInternal.call(this);
 };
 
 
@@ -117,8 +114,7 @@ ol.renderer.dom.Map.prototype.createLayerRenderer = function(layer) {
  * @param {olx.FrameState} frameState Frame state.
  * @private
  */
-ol.renderer.dom.Map.prototype.dispatchComposeEvent_ =
-    function(type, frameState) {
+ol.renderer.dom.Map.prototype.dispatchComposeEvent_ = function(type, frameState) {
   var map = this.getMap();
   if (map.hasListener(type)) {
     var extent = frameState.extent;
@@ -140,7 +136,6 @@ ol.renderer.dom.Map.prototype.dispatchComposeEvent_ =
     var composeEvent = new ol.render.Event(type, map, vectorContext,
         frameState, context, null);
     map.dispatchEvent(composeEvent);
-    vectorContext.flush();
   }
 };
 
@@ -160,7 +155,7 @@ ol.renderer.dom.Map.prototype.renderFrame = function(frameState) {
 
   if (!frameState) {
     if (this.renderedVisible_) {
-      goog.style.setElementShown(this.layersPane_, false);
+      this.layersPane_.style.display = 'none';
       this.renderedVisible_ = false;
     }
     return;
@@ -178,7 +173,7 @@ ol.renderer.dom.Map.prototype.renderFrame = function(frameState) {
   this.dispatchComposeEvent_(ol.render.EventType.PRECOMPOSE, frameState);
 
   var layerStatesArray = frameState.layerStatesArray;
-  goog.array.stableSort(layerStatesArray, ol.renderer.Map.sortByZIndex);
+  ol.array.stableSort(layerStatesArray, ol.renderer.Map.sortByZIndex);
 
   var viewResolution = frameState.viewState.resolution;
   var i, ii, layer, layerRenderer, layerState;
@@ -189,7 +184,7 @@ ol.renderer.dom.Map.prototype.renderFrame = function(frameState) {
         this.getLayerRenderer(layer));
     goog.asserts.assertInstanceof(layerRenderer, ol.renderer.dom.Layer,
         'renderer is an instance of ol.renderer.dom.Layer');
-    goog.dom.insertChildAt(this.layersPane_, layerRenderer.getTarget(), i);
+    this.layersPane_.insertBefore(layerRenderer.getTarget(), this.layersPane_.childNodes[i] || null);
     if (ol.layer.Layer.visibleAtResolution(layerState, viewResolution) &&
         layerState.sourceState == ol.source.State.READY) {
       if (layerRenderer.prepareFrame(frameState, layerState)) {
@@ -207,12 +202,12 @@ ol.renderer.dom.Map.prototype.renderFrame = function(frameState) {
       layerRenderer = this.getLayerRendererByKey(layerKey);
       goog.asserts.assertInstanceof(layerRenderer, ol.renderer.dom.Layer,
           'renderer is an instance of ol.renderer.dom.Layer');
-      goog.dom.removeNode(layerRenderer.getTarget());
+      ol.dom.removeNode(layerRenderer.getTarget());
     }
   }
 
   if (!this.renderedVisible_) {
-    goog.style.setElementShown(this.layersPane_, true);
+    this.layersPane_.style.display = '';
     this.renderedVisible_ = true;
   }
 

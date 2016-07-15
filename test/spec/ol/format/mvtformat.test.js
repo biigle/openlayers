@@ -1,7 +1,6 @@
 goog.provide('ol.test.format.MVT');
 
-
-describe('ol.format.MVT', function() {
+where('ArrayBuffer').describe('ol.format.MVT', function() {
 
   var data;
   beforeEach(function(done) {

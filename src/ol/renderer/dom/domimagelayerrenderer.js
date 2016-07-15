@@ -1,7 +1,6 @@
 goog.provide('ol.renderer.dom.ImageLayer');
 
 goog.require('goog.asserts');
-goog.require('goog.dom');
 goog.require('goog.vec.Mat4');
 goog.require('ol.ImageBase');
 goog.require('ol.ViewHint');
@@ -13,17 +12,16 @@ goog.require('ol.renderer.dom.Layer');
 goog.require('ol.vec.Mat4');
 
 
-
 /**
  * @constructor
  * @extends {ol.renderer.dom.Layer}
  * @param {ol.layer.Image} imageLayer Image layer.
  */
 ol.renderer.dom.ImageLayer = function(imageLayer) {
-  var target = goog.dom.createElement('DIV');
+  var target = document.createElement('DIV');
   target.style.position = 'absolute';
 
-  goog.base(this, imageLayer, target);
+  ol.renderer.dom.Layer.call(this, imageLayer, target);
 
   /**
    * The last rendered image.
@@ -39,14 +37,13 @@ ol.renderer.dom.ImageLayer = function(imageLayer) {
   this.transform_ = goog.vec.Mat4.createNumberIdentity();
 
 };
-goog.inherits(ol.renderer.dom.ImageLayer, ol.renderer.dom.Layer);
+ol.inherits(ol.renderer.dom.ImageLayer, ol.renderer.dom.Layer);
 
 
 /**
  * @inheritDoc
  */
-ol.renderer.dom.ImageLayer.prototype.forEachFeatureAtCoordinate =
-    function(coordinate, frameState, callback, thisArg) {
+ol.renderer.dom.ImageLayer.prototype.forEachFeatureAtCoordinate = function(coordinate, frameState, callback, thisArg) {
   var layer = this.getLayer();
   var source = layer.getSource();
   var resolution = frameState.viewState.resolution;
@@ -68,7 +65,7 @@ ol.renderer.dom.ImageLayer.prototype.forEachFeatureAtCoordinate =
  * @inheritDoc
  */
 ol.renderer.dom.ImageLayer.prototype.clearFrame = function() {
-  goog.dom.removeChildren(this.target);
+  ol.dom.removeChildren(this.target);
   this.image_ = null;
 };
 
@@ -76,8 +73,7 @@ ol.renderer.dom.ImageLayer.prototype.clearFrame = function() {
 /**
  * @inheritDoc
  */
-ol.renderer.dom.ImageLayer.prototype.prepareFrame =
-    function(frameState, layerState) {
+ol.renderer.dom.ImageLayer.prototype.prepareFrame = function(frameState, layerState) {
 
   var viewState = frameState.viewState;
   var viewCenter = viewState.center;
@@ -136,7 +132,7 @@ ol.renderer.dom.ImageLayer.prototype.prepareFrame =
       // overriding the max-width style.
       imageElement.style.maxWidth = 'none';
       imageElement.style.position = 'absolute';
-      goog.dom.removeChildren(this.target);
+      ol.dom.removeChildren(this.target);
       this.target.appendChild(imageElement);
       this.image_ = image;
     }

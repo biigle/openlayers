@@ -1,22 +1,14 @@
 goog.provide('ol.reproj.Image');
-goog.provide('ol.reproj.ImageFunctionType');
 
 goog.require('goog.asserts');
-goog.require('goog.events');
-goog.require('goog.events.EventType');
+goog.require('ol.events');
+goog.require('ol.events.EventType');
 goog.require('ol.ImageBase');
 goog.require('ol.ImageState');
 goog.require('ol.extent');
 goog.require('ol.proj');
 goog.require('ol.reproj');
 goog.require('ol.reproj.Triangulation');
-
-
-/**
- * @typedef {function(ol.Extent, number, number) : ol.ImageBase}
- */
-ol.reproj.ImageFunctionType;
-
 
 
 /**
@@ -31,7 +23,7 @@ ol.reproj.ImageFunctionType;
  * @param {ol.Extent} targetExtent Target extent.
  * @param {number} targetResolution Target resolution.
  * @param {number} pixelRatio Pixel ratio.
- * @param {ol.reproj.ImageFunctionType} getImageFunction
+ * @param {ol.ReprojImageFunctionType} getImageFunction
  *     Function returning source images (extent, resolution, pixelRatio).
  */
 ol.reproj.Image = function(sourceProj, targetProj,
@@ -103,7 +95,7 @@ ol.reproj.Image = function(sourceProj, targetProj,
 
   /**
    * @private
-   * @type {goog.events.Key}
+   * @type {?ol.EventsKey}
    */
   this.sourceListenerKey_ = null;
 
@@ -116,10 +108,10 @@ ol.reproj.Image = function(sourceProj, targetProj,
     attributions = this.sourceImage_.getAttributions();
   }
 
-  goog.base(this, targetExtent, targetResolution, this.sourcePixelRatio_,
+  ol.ImageBase.call(this, targetExtent, targetResolution, this.sourcePixelRatio_,
             state, attributions);
 };
-goog.inherits(ol.reproj.Image, ol.ImageBase);
+ol.inherits(ol.reproj.Image, ol.ImageBase);
 
 
 /**
@@ -129,7 +121,7 @@ ol.reproj.Image.prototype.disposeInternal = function() {
   if (this.state == ol.ImageState.LOADING) {
     this.unlistenSource_();
   }
-  goog.base(this, 'disposeInternal');
+  ol.ImageBase.prototype.disposeInternal.call(this);
 };
 
 
@@ -164,7 +156,7 @@ ol.reproj.Image.prototype.reproject_ = function() {
         this.targetResolution_, this.targetExtent_, this.triangulation_, [{
           extent: this.sourceImage_.getExtent(),
           image: this.sourceImage_.getImage()
-        }]);
+        }], 0);
   }
   this.state = sourceState;
   this.changed();
@@ -184,15 +176,15 @@ ol.reproj.Image.prototype.load = function() {
         sourceState == ol.ImageState.ERROR) {
       this.reproject_();
     } else {
-      this.sourceListenerKey_ = this.sourceImage_.listen(
-          goog.events.EventType.CHANGE, function(e) {
+      this.sourceListenerKey_ = ol.events.listen(this.sourceImage_,
+          ol.events.EventType.CHANGE, function(e) {
             var sourceState = this.sourceImage_.getState();
             if (sourceState == ol.ImageState.LOADED ||
                 sourceState == ol.ImageState.ERROR) {
               this.unlistenSource_();
               this.reproject_();
             }
-          }, false, this);
+          }, this);
       this.sourceImage_.load();
     }
   }
@@ -205,6 +197,6 @@ ol.reproj.Image.prototype.load = function() {
 ol.reproj.Image.prototype.unlistenSource_ = function() {
   goog.asserts.assert(this.sourceListenerKey_,
       'this.sourceListenerKey_ should not be null');
-  goog.events.unlistenByKey(this.sourceListenerKey_);
+  ol.events.unlistenByKey(this.sourceListenerKey_);
   this.sourceListenerKey_ = null;
 };

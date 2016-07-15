@@ -1,14 +1,12 @@
 goog.provide('ol.Feature');
-goog.provide('ol.FeatureStyleFunction');
 
 goog.require('goog.asserts');
-goog.require('goog.events');
-goog.require('goog.events.EventType');
+goog.require('ol.events');
+goog.require('ol.events.EventType');
 goog.require('ol');
 goog.require('ol.Object');
 goog.require('ol.geom.Geometry');
 goog.require('ol.style.Style');
-
 
 
 /**
@@ -58,7 +56,7 @@ goog.require('ol.style.Style');
  */
 ol.Feature = function(opt_geometryOrProperties) {
 
-  goog.base(this);
+  ol.Object.call(this);
 
   /**
    * @private
@@ -88,29 +86,29 @@ ol.Feature = function(opt_geometryOrProperties) {
 
   /**
    * @private
-   * @type {goog.events.Key}
+   * @type {?ol.EventsKey}
    */
   this.geometryChangeKey_ = null;
 
-  goog.events.listen(
+  ol.events.listen(
       this, ol.Object.getChangeEventType(this.geometryName_),
-      this.handleGeometryChanged_, false, this);
+      this.handleGeometryChanged_, this);
 
   if (opt_geometryOrProperties !== undefined) {
     if (opt_geometryOrProperties instanceof ol.geom.Geometry ||
         !opt_geometryOrProperties) {
-      var geometry = /** @type {ol.geom.Geometry} */ (opt_geometryOrProperties);
+      var geometry = opt_geometryOrProperties;
       this.setGeometry(geometry);
     } else {
       goog.asserts.assert(goog.isObject(opt_geometryOrProperties),
           'opt_geometryOrProperties should be an Object');
-      var properties = /** @type {Object.<string, *>} */
-          (opt_geometryOrProperties);
+      /** @type {Object.<string, *>} */
+      var properties = opt_geometryOrProperties;
       this.setProperties(properties);
     }
   }
 };
-goog.inherits(ol.Feature, ol.Object);
+ol.inherits(ol.Feature, ol.Object);
 
 
 /**
@@ -210,13 +208,13 @@ ol.Feature.prototype.handleGeometryChange_ = function() {
  */
 ol.Feature.prototype.handleGeometryChanged_ = function() {
   if (this.geometryChangeKey_) {
-    goog.events.unlistenByKey(this.geometryChangeKey_);
+    ol.events.unlistenByKey(this.geometryChangeKey_);
     this.geometryChangeKey_ = null;
   }
   var geometry = this.getGeometry();
   if (geometry) {
-    this.geometryChangeKey_ = goog.events.listen(geometry,
-        goog.events.EventType.CHANGE, this.handleGeometryChange_, false, this);
+    this.geometryChangeKey_ = ol.events.listen(geometry,
+        ol.events.EventType.CHANGE, this.handleGeometryChange_, this);
   }
   this.changed();
 };
@@ -274,26 +272,15 @@ ol.Feature.prototype.setId = function(id) {
  * @api stable
  */
 ol.Feature.prototype.setGeometryName = function(name) {
-  goog.events.unlisten(
+  ol.events.unlisten(
       this, ol.Object.getChangeEventType(this.geometryName_),
-      this.handleGeometryChanged_, false, this);
+      this.handleGeometryChanged_, this);
   this.geometryName_ = name;
-  goog.events.listen(
+  ol.events.listen(
       this, ol.Object.getChangeEventType(this.geometryName_),
-      this.handleGeometryChanged_, false, this);
+      this.handleGeometryChanged_, this);
   this.handleGeometryChanged_();
 };
-
-
-/**
- * A function that returns an array of {@link ol.style.Style styles} given a
- * resolution. The `this` keyword inside the function references the
- * {@link ol.Feature} to be styled.
- *
- * @typedef {function(this: ol.Feature, number): Array.<ol.style.Style>}
- * @api stable
- */
-ol.FeatureStyleFunction;
 
 
 /**
@@ -307,14 +294,14 @@ ol.FeatureStyleFunction;
 ol.Feature.createStyleFunction = function(obj) {
   var styleFunction;
 
-  if (goog.isFunction(obj)) {
+  if (typeof obj === 'function') {
     styleFunction = obj;
   } else {
     /**
      * @type {Array.<ol.style.Style>}
      */
     var styles;
-    if (goog.isArray(obj)) {
+    if (Array.isArray(obj)) {
       styles = obj;
     } else {
       goog.asserts.assertInstanceof(obj, ol.style.Style,

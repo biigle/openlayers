@@ -1,19 +1,9 @@
 goog.provide('ol.reproj.Triangulation');
 
 goog.require('goog.asserts');
-goog.require('goog.math');
 goog.require('ol.extent');
+goog.require('ol.math');
 goog.require('ol.proj');
-
-
-/**
- * Single triangle; consists of 3 source points and 3 target points.
- *
- * @typedef {{source: Array.<ol.Coordinate>,
- *            target: Array.<ol.Coordinate>}}
- */
-ol.reproj.Triangle;
-
 
 
 /**
@@ -48,8 +38,8 @@ ol.reproj.Triangulation = function(sourceProj, targetProj, targetExtent,
   var transformInv = ol.proj.getTransform(this.targetProj_, this.sourceProj_);
 
   /**
-   * @param {ol.Coordinate} c
-   * @return {ol.Coordinate}
+   * @param {ol.Coordinate} c A coordinate.
+   * @return {ol.Coordinate} Transformed coordinate.
    * @private
    */
   this.transformInv_ = function(c) {
@@ -73,7 +63,7 @@ ol.reproj.Triangulation = function(sourceProj, targetProj, targetExtent,
   this.errorThresholdSquared_ = errorThreshold * errorThreshold;
 
   /**
-   * @type {Array.<ol.reproj.Triangle>}
+   * @type {Array.<ol.ReprojTriangle>}
    * @private
    */
   this.triangles_ = [];
@@ -173,12 +163,12 @@ ol.reproj.Triangulation = function(sourceProj, targetProj, targetExtent,
 
 /**
  * Adds triangle to the triangulation.
- * @param {ol.Coordinate} a
- * @param {ol.Coordinate} b
- * @param {ol.Coordinate} c
- * @param {ol.Coordinate} aSrc
- * @param {ol.Coordinate} bSrc
- * @param {ol.Coordinate} cSrc
+ * @param {ol.Coordinate} a The target a coordinate.
+ * @param {ol.Coordinate} b The target b coordinate.
+ * @param {ol.Coordinate} c The target c coordinate.
+ * @param {ol.Coordinate} aSrc The source a coordinate.
+ * @param {ol.Coordinate} bSrc The source b coordinate.
+ * @param {ol.Coordinate} cSrc The source c coordinate.
  * @private
  */
 ol.reproj.Triangulation.prototype.addTriangle_ = function(a, b, c,
@@ -195,14 +185,14 @@ ol.reproj.Triangulation.prototype.addTriangle_ = function(a, b, c,
  * (and reprojects the vertices) if valid.
  * Performs quad subdivision if needed to increase precision.
  *
- * @param {ol.Coordinate} a
- * @param {ol.Coordinate} b
- * @param {ol.Coordinate} c
- * @param {ol.Coordinate} d
- * @param {ol.Coordinate} aSrc
- * @param {ol.Coordinate} bSrc
- * @param {ol.Coordinate} cSrc
- * @param {ol.Coordinate} dSrc
+ * @param {ol.Coordinate} a The target a coordinate.
+ * @param {ol.Coordinate} b The target b coordinate.
+ * @param {ol.Coordinate} c The target c coordinate.
+ * @param {ol.Coordinate} d The target d coordinate.
+ * @param {ol.Coordinate} aSrc The source a coordinate.
+ * @param {ol.Coordinate} bSrc The source b coordinate.
+ * @param {ol.Coordinate} cSrc The source c coordinate.
+ * @param {ol.Coordinate} dSrc The source d coordinate.
  * @param {number} maxSubdivision Maximal allowed subdivision of the quad.
  * @private
  */
@@ -263,10 +253,10 @@ ol.reproj.Triangulation.prototype.addQuad_ = function(a, b, c, d,
       if (wrapsX) {
         goog.asserts.assert(this.sourceWorldWidth_);
         var centerSrcEstimX =
-            (goog.math.modulo(aSrc[0], this.sourceWorldWidth_) +
-             goog.math.modulo(cSrc[0], this.sourceWorldWidth_)) / 2;
+            (ol.math.modulo(aSrc[0], this.sourceWorldWidth_) +
+             ol.math.modulo(cSrc[0], this.sourceWorldWidth_)) / 2;
         dx = centerSrcEstimX -
-            goog.math.modulo(centerSrc[0], this.sourceWorldWidth_);
+            ol.math.modulo(centerSrc[0], this.sourceWorldWidth_);
       } else {
         dx = (aSrc[0] + cSrc[0]) / 2 - centerSrc[0];
       }
@@ -334,7 +324,7 @@ ol.reproj.Triangulation.prototype.calculateSourceExtent = function() {
 
 
 /**
- * @return {Array.<ol.reproj.Triangle>} Array of the calculated triangles.
+ * @return {Array.<ol.ReprojTriangle>} Array of the calculated triangles.
  */
 ol.reproj.Triangulation.prototype.getTriangles = function() {
   return this.triangles_;

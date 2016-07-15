@@ -1,8 +1,8 @@
 goog.provide('ol.layer.Tile');
 
-goog.require('goog.object');
 goog.require('ol');
 goog.require('ol.layer.Layer');
+goog.require('ol.object');
 
 
 /**
@@ -12,7 +12,6 @@ ol.layer.TileProperty = {
   PRELOAD: 'preload',
   USE_INTERIM_TILES_ON_ERROR: 'useInterimTilesOnError'
 };
-
 
 
 /**
@@ -32,17 +31,17 @@ ol.layer.TileProperty = {
 ol.layer.Tile = function(opt_options) {
   var options = opt_options ? opt_options : {};
 
-  var baseOptions = goog.object.clone(options);
+  var baseOptions = ol.object.assign({}, options);
 
   delete baseOptions.preload;
   delete baseOptions.useInterimTilesOnError;
-  goog.base(this,  /** @type {olx.layer.LayerOptions} */ (baseOptions));
+  ol.layer.Layer.call(this,  /** @type {olx.layer.LayerOptions} */ (baseOptions));
 
   this.setPreload(options.preload !== undefined ? options.preload : 0);
   this.setUseInterimTilesOnError(options.useInterimTilesOnError !== undefined ?
       options.useInterimTilesOnError : true);
 };
-goog.inherits(ol.layer.Tile, ol.layer.Layer);
+ol.inherits(ol.layer.Tile, ol.layer.Layer);
 
 
 /**
@@ -94,8 +93,7 @@ ol.layer.Tile.prototype.getUseInterimTilesOnError = function() {
  * @observable
  * @api
  */
-ol.layer.Tile.prototype.setUseInterimTilesOnError =
-    function(useInterimTilesOnError) {
+ol.layer.Tile.prototype.setUseInterimTilesOnError = function(useInterimTilesOnError) {
   this.set(
       ol.layer.TileProperty.USE_INTERIM_TILES_ON_ERROR, useInterimTilesOnError);
 };

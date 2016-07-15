@@ -1,13 +1,10 @@
 goog.provide('ol.source.TileDebug');
 
 goog.require('ol.Tile');
-goog.require('ol.TileCoord');
 goog.require('ol.TileState');
 goog.require('ol.dom');
 goog.require('ol.size');
 goog.require('ol.source.Tile');
-goog.require('ol.tilecoord');
-
 
 
 /**
@@ -20,7 +17,7 @@ goog.require('ol.tilecoord');
  */
 ol.DebugTile_ = function(tileCoord, tileSize, text) {
 
-  goog.base(this, tileCoord, ol.TileState.LOADED);
+  ol.Tile.call(this, tileCoord, ol.TileState.LOADED);
 
   /**
    * @private
@@ -41,7 +38,7 @@ ol.DebugTile_ = function(tileCoord, tileSize, text) {
   this.canvasByContext_ = {};
 
 };
-goog.inherits(ol.DebugTile_, ol.Tile);
+ol.inherits(ol.DebugTile_, ol.Tile);
 
 
 /**
@@ -75,7 +72,6 @@ ol.DebugTile_.prototype.getImage = function(opt_context) {
 };
 
 
-
 /**
  * @classdesc
  * A pseudo tile source, which does not fetch tiles from a server, but renders
@@ -91,7 +87,7 @@ ol.DebugTile_.prototype.getImage = function(opt_context) {
  */
 ol.source.TileDebug = function(options) {
 
-  goog.base(this, {
+  ol.source.Tile.call(this, {
     opaque: false,
     projection: options.projection,
     tileGrid: options.tileGrid,
@@ -99,7 +95,7 @@ ol.source.TileDebug = function(options) {
   });
 
 };
-goog.inherits(ol.source.TileDebug, ol.source.Tile);
+ol.inherits(ol.source.TileDebug, ol.source.Tile);
 
 
 /**
@@ -113,8 +109,8 @@ ol.source.TileDebug.prototype.getTile = function(z, x, y) {
     var tileSize = ol.size.toSize(this.tileGrid.getTileSize(z));
     var tileCoord = [z, x, y];
     var textTileCoord = this.getTileCoordForTileUrlFunction(tileCoord);
-    var text = !textTileCoord ? '' : ol.tilecoord.toString(
-        this.getTileCoordForTileUrlFunction(textTileCoord));
+    var text = !textTileCoord ? '' :
+        this.getTileCoordForTileUrlFunction(textTileCoord).toString();
     var tile = new ol.DebugTile_(tileCoord, tileSize, text);
     this.tileCache.set(tileCoordKey, tile);
     return tile;

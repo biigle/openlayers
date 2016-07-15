@@ -1,15 +1,12 @@
 goog.provide('ol.control.Rotate');
 
-goog.require('goog.dom');
-goog.require('goog.dom.classlist');
-goog.require('goog.events');
-goog.require('goog.events.EventType');
+goog.require('ol.events');
+goog.require('ol.events.EventType');
 goog.require('ol');
 goog.require('ol.animation');
 goog.require('ol.control.Control');
 goog.require('ol.css');
 goog.require('ol.easing');
-
 
 
 /**
@@ -27,10 +24,9 @@ ol.control.Rotate = function(opt_options) {
 
   var options = opt_options ? opt_options : {};
 
-  var className = options.className ?
-      options.className : 'ol-rotate';
+  var className = options.className !== undefined ? options.className : 'ol-rotate';
 
-  var label = options.label ? options.label : '\u21E7';
+  var label = options.label !== undefined ? options.label : '\u21E7';
 
   /**
    * @type {Element}
@@ -38,32 +34,37 @@ ol.control.Rotate = function(opt_options) {
    */
   this.label_ = null;
 
-  if (goog.isString(label)) {
-    this.label_ = goog.dom.createDom('SPAN',
-        'ol-compass', label);
+  if (typeof label === 'string') {
+    this.label_ = document.createElement('span');
+    this.label_.className = 'ol-compass';
+    this.label_.textContent = label;
   } else {
     this.label_ = label;
-    goog.dom.classlist.add(this.label_, 'ol-compass');
+    this.label_.classList.add('ol-compass');
   }
 
   var tipLabel = options.tipLabel ? options.tipLabel : 'Reset rotation';
 
-  var button = goog.dom.createDom('BUTTON', {
-    'class': className + '-reset',
-    'type' : 'button',
-    'title': tipLabel
-  }, this.label_);
+  var button = document.createElement('button');
+  button.className = className + '-reset';
+  button.setAttribute('type', 'button');
+  button.title = tipLabel;
+  button.appendChild(this.label_);
 
-  goog.events.listen(button, goog.events.EventType.CLICK,
-      ol.control.Rotate.prototype.handleClick_, false, this);
+  ol.events.listen(button, ol.events.EventType.CLICK,
+      ol.control.Rotate.prototype.handleClick_, this);
 
   var cssClasses = className + ' ' + ol.css.CLASS_UNSELECTABLE + ' ' +
       ol.css.CLASS_CONTROL;
-  var element = goog.dom.createDom('DIV', cssClasses, button);
+  var element = document.createElement('div');
+  element.className = cssClasses;
+  element.appendChild(button);
 
   var render = options.render ? options.render : ol.control.Rotate.render;
 
-  goog.base(this, {
+  this.callResetNorth_ = options.resetNorth ? options.resetNorth : undefined;
+
+  ol.control.Control.call(this, {
     element: element,
     render: render,
     target: options.target
@@ -73,7 +74,7 @@ ol.control.Rotate = function(opt_options) {
    * @type {number}
    * @private
    */
-  this.duration_ = options.duration ? options.duration : 250;
+  this.duration_ = options.duration !== undefined ? options.duration : 250;
 
   /**
    * @type {boolean}
@@ -88,20 +89,24 @@ ol.control.Rotate = function(opt_options) {
   this.rotation_ = undefined;
 
   if (this.autoHide_) {
-    goog.dom.classlist.add(this.element, ol.css.CLASS_HIDDEN);
+    this.element.classList.add(ol.css.CLASS_HIDDEN);
   }
 
 };
-goog.inherits(ol.control.Rotate, ol.control.Control);
+ol.inherits(ol.control.Rotate, ol.control.Control);
 
 
 /**
- * @param {goog.events.BrowserEvent} event The event to handle
+ * @param {Event} event The event to handle
  * @private
  */
 ol.control.Rotate.prototype.handleClick_ = function(event) {
   event.preventDefault();
-  this.resetNorth_();
+  if (this.callResetNorth_ !== undefined) {
+    this.callResetNorth_();
+  } else {
+    this.resetNorth_();
+  }
 };
 
 
@@ -152,8 +157,12 @@ ol.control.Rotate.render = function(mapEvent) {
   if (rotation != this.rotation_) {
     var transform = 'rotate(' + rotation + 'rad)';
     if (this.autoHide_) {
-      goog.dom.classlist.enable(
-          this.element, ol.css.CLASS_HIDDEN, rotation === 0);
+      var contains = this.element.classList.contains(ol.css.CLASS_HIDDEN);
+      if (!contains && rotation === 0) {
+        this.element.classList.add(ol.css.CLASS_HIDDEN);
+      } else if (contains && rotation !== 0) {
+        this.element.classList.remove(ol.css.CLASS_HIDDEN);
+      }
     }
     this.label_.style.msTransform = transform;
     this.label_.style.webkitTransform = transform;

@@ -42,7 +42,7 @@ describe('ol.rendering.layer.VectorTile', function() {
     var options = {
       source: source
     };
-    goog.object.extend(options, layerOptions);
+    ol.object.assign(options, layerOptions);
     map.addLayer(new ol.layer.VectorTile(options));
   }
 
@@ -66,7 +66,7 @@ describe('ol.rendering.layer.VectorTile', function() {
       map = createMap('canvas');
       waitForTiles(source, {}, function() {
         expectResemble(map, 'spec/ol/layer/expected/vectortile-canvas.png',
-            IMAGE_TOLERANCE, done);
+            11.6, done);
       });
     });
 
@@ -74,9 +74,9 @@ describe('ol.rendering.layer.VectorTile', function() {
 
 });
 
-goog.require('goog.object');
-goog.require('ol.format.MVT');
 goog.require('ol.Map');
 goog.require('ol.View');
+goog.require('ol.format.MVT');
 goog.require('ol.layer.VectorTile');
+goog.require('ol.object');
 goog.require('ol.source.VectorTile');

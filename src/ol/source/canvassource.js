@@ -8,7 +8,7 @@ goog.require('ol.source.Image');
 
 /**
  * @classdesc
- * Base class for image sources where a canvas element is the image.
+ * Base class for canvas sources where a canvas element is the canvas.
  *
  * @constructor
  * @extends {ol.source.Image}
@@ -17,34 +17,31 @@ goog.require('ol.source.Image');
  */
 ol.source.Canvas = function(options) {
 
-  var attributions = options.attributions !== undefined ?
-      options.attributions : null;
-
   var canvasExtent = options.canvasExtent;
 
-  var resolution, resolutions;
-  if (options.canvasSize !== undefined) {
-    resolution = ol.extent.getHeight(canvasExtent) / options.canvasSize[1];
-    resolutions = [resolution];
-  }
-
-  goog.base(this, {
-    attributions: attributions,
+  ol.source.Image.call(this, {
+    attributions: options.attributions,
     logo: options.logo,
-    projection: ol.proj.get(options.projection),
-    resolutions: resolutions
+    projection: ol.proj.get(options.projection)
   });
 
   /**
    * @private
    * @type {ol.ImageCanvas}
    */
-  this.canvas_ = new ol.ImageCanvas(canvasExtent, resolution, 1,
-        attributions, options.canvas);
-  goog.events.listen(this.canvas_, goog.events.EventType.CHANGE,
-    this.handleImageChange, false, this);
+  this.canvas_ = new ol.ImageCanvas(canvasExtent, undefined, 1,
+        this.getAttributions(), options.canvas);
+
+  /**
+   * @private
+   * @type {ol.Size}
+   */
+  this.canvasSize_ = options.canvasSize ? options.canvasSize : null;
+
+  ol.events.listen(this.canvas_, ol.events.EventType.CHANGE,
+    this.handleImageChange, this);
 };
-goog.inherits(ol.source.Canvas, ol.source.Image);
+ol.inherits(ol.source.Canvas, ol.source.Image);
 
 
 /**

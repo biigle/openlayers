@@ -1,7 +1,6 @@
 goog.provide('ol.animation');
 
 goog.require('ol');
-goog.require('ol.PreRenderFunction');
 goog.require('ol.ViewHint');
 goog.require('ol.coordinate');
 goog.require('ol.easing');
@@ -24,6 +23,7 @@ ol.animation.bounce = function(options) {
       /**
        * @param {ol.Map} map Map.
        * @param {?olx.FrameState} frameState Frame state.
+       * @return {boolean} Run this function in the next frame.
        */
       function(map, frameState) {
         if (frameState.time < start) {
@@ -62,6 +62,7 @@ ol.animation.pan = function(options) {
       /**
        * @param {ol.Map} map Map.
        * @param {?olx.FrameState} frameState Frame state.
+       * @return {boolean} Run this function in the next frame.
        */
       function(map, frameState) {
         if (frameState.time < start) {
@@ -103,6 +104,7 @@ ol.animation.rotate = function(options) {
       /**
        * @param {ol.Map} map Map.
        * @param {?olx.FrameState} frameState Frame state.
+       * @return {boolean} Run this function in the next frame.
        */
       function(map, frameState) {
         if (frameState.time < start) {
@@ -146,6 +148,7 @@ ol.animation.zoom = function(options) {
       /**
        * @param {ol.Map} map Map.
        * @param {?olx.FrameState} frameState Frame state.
+       * @return {boolean} Run this function in the next frame.
        */
       function(map, frameState) {
         if (frameState.time < start) {
