@@ -197,11 +197,6 @@ ol.interaction.Draw = function(options) {
        * @return {ol.geom.SimpleGeometry}
        */
       geometryFunction = function(coordinates, opt_geometry) {
-        var rectangle = goog.isDef(opt_geometry) ? opt_geometry :
-            new ol.geom.Rectangle(null);
-        var first = coordinates[0];
-        var second = coordinates[1];
-        var third = coordinates[2];
 
         /*
          * ---a_vec--->
@@ -212,9 +207,11 @@ ol.interaction.Draw = function(options) {
          * ------<3>---        v
          */
 
-        if (third === undefined) {
-          rectangle.setCoordinates([[first, second]]);
-        } else {
+        if (coordinates.length > 2) {
+          var first = coordinates[0];
+          var second = coordinates[1];
+          var third = coordinates[2];
+
           // vector from first to second
           var a_vec = [second[0] - first[0], second[1] - first[1]];
           // perpendicular vector to a_vec
@@ -230,14 +227,24 @@ ol.interaction.Draw = function(options) {
           // vector from second to the intersection point
           var intersection_vec = [x * b_vec[0], x * b_vec[1]];
 
-          rectangle.setCoordinates([[
+          coordinates = [[
             [first[0] - intersection_vec[0], first[1] - intersection_vec[1]],
             [second[0] - intersection_vec[0], second[1] - intersection_vec[1]],
             [second[0] + intersection_vec[0], second[1] + intersection_vec[1]],
             [first[0] + intersection_vec[0], first[1] + intersection_vec[1]]
-          ]]);
+          ]];
+        } else {
+          coordinates = [coordinates];
         }
-        return rectangle;
+
+        var geometry = opt_geometry;
+        if (geometry) {
+          geometry.setCoordinates(coordinates);
+        } else {
+          geometry = new ol.geom.Rectangle(coordinates);
+        }
+
+        return geometry;
       };
     } else {
       var Constructor;

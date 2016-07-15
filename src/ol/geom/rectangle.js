@@ -14,11 +14,9 @@ goog.require('ol.geom.Polygon');
  * @api experimental
  */
 ol.geom.Rectangle = function(coordinates, opt_layout) {
-
-  this.setCoordinates(coordinates, opt_layout);
-
+  ol.geom.Polygon.call(this, coordinates, opt_layout);
 };
-goog.inherits(ol.geom.Rectangle, ol.geom.Polygon);
+ol.inherits(ol.geom.Rectangle, ol.geom.Polygon);
 
 
 /**
