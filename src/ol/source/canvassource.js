@@ -13,10 +13,9 @@ goog.require('ol.source.Image');
  * @constructor
  * @extends {ol.source.Image}
  * @param {olx.source.CanvasOptions} options
- * @api
+ * @api experimental
  */
 ol.source.Canvas = function(options) {
-
   var canvasExtent = options.canvasExtent;
 
   ol.source.Image.call(this, {
@@ -47,9 +46,7 @@ ol.inherits(ol.source.Canvas, ol.source.Image);
 /**
  * @inheritDoc
  */
-ol.source.Canvas.prototype.getImageInternal =
-    function(extent, resolution, pixelRatio, projection) {
-
+ol.source.Canvas.prototype.getImageInternal = function(extent, resolution, pixelRatio, projection) {
   if (ol.extent.intersects(extent, this.canvas_.getExtent())) {
     return this.canvas_;
   }

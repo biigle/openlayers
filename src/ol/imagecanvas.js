@@ -29,6 +29,10 @@ ol.ImageCanvas = function(extent, resolution, pixelRatio, attributions,
   var state = opt_loader !== undefined ?
       ol.ImageState.IDLE : ol.ImageState.LOADED;
 
+  if (resolution === undefined) {
+    resolution = ol.extent.getHeight(extent) / canvas.height;
+  }
+
   ol.ImageBase.call(this, extent, resolution, pixelRatio, state, attributions);
 
   /**
