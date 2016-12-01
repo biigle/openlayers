@@ -43,6 +43,13 @@ ol.AtlasManagerInfo;
 
 
 /**
+ * A type that can be used to provide attribution information for data sources.
+ *
+ * It represents either
+ * * a simple string (e.g. `'© Acme Inc.'`),
+ * * an array of simple strings (e.g. `['© Acme Inc.', '© Bacme Inc.']`),
+ * * an instance of `{@link ol.Attribution}`,
+ * * or an array with multiple `{@link ol.Attribution}` instances.
  * @typedef {string|Array.<string>|ol.Attribution|Array.<ol.Attribution>}
  */
 ol.AttributionLike;
@@ -75,7 +82,7 @@ ol.CanvasFunctionType;
  *            lineJoin: string,
  *            lineWidth: number,
  *            miterLimit: number,
- *            strokeStyle: string}}
+ *            strokeStyle: ol.ColorLike}}
  */
 ol.CanvasStrokeState;
 
@@ -95,7 +102,7 @@ ol.CenterConstraintType;
 
 
 /**
- * @typedef {{strokeStyle: (string|undefined), strokeWidth: number,
+ * @typedef {{strokeStyle: (ol.ColorLike|undefined), strokeWidth: number,
  *   size: number, lineDash: Array.<number>}}
  */
 ol.CircleRenderOptions;
@@ -106,14 +113,17 @@ ol.CircleRenderOptions;
  * red, green, and blue should be integers in the range 0..255 inclusive.
  * alpha should be a float in the range 0..1 inclusive. If no alpha value is
  * given then `1` will be used.
- * @typedef {Array.<number>|Uint8Array|Uint8ClampedArray}
+ * @typedef {Array.<number>}
  */
 ol.Color;
 
 
 /**
- * A type accepted by CanvasRenderingContext2D.fillStyle.
- * Represents a color, pattern, or gradient.
+ * A type accepted by CanvasRenderingContext2D.fillStyle
+ * or CanvasRenderingContext2D.strokeStyle.
+ * Represents a color, pattern, or gradient. The origin for patterns and
+ * gradients as fill style is the top-left corner of the extent of the geometry
+ * being filled.
  *
  * @typedef {string|CanvasPattern|CanvasGradient}
  */
@@ -274,8 +284,8 @@ ol.ImageLoadFunctionType;
 
 
 /**
- * @typedef {{x: number, xunits: (ol.style.IconAnchorUnits|undefined),
- *            y: number, yunits: (ol.style.IconAnchorUnits|undefined)}}
+ * @typedef {{x: number, xunits: (ol.style.Icon.AnchorUnits|undefined),
+ *            y: number, yunits: (ol.style.Icon.AnchorUnits|undefined)}}
  */
 ol.KMLVec2_;
 
@@ -405,7 +415,7 @@ ol.RasterOperation;
 
 /**
  * @typedef {{
- *   strokeStyle: (string|undefined),
+ *   strokeStyle: (ol.ColorLike|undefined),
  *   strokeWidth: number,
  *   size: number,
  *   lineCap: string,

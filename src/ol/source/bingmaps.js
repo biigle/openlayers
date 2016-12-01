@@ -46,9 +46,21 @@ ol.source.BingMaps = function(options) {
    */
   this.maxZoom_ = options.maxZoom !== undefined ? options.maxZoom : -1;
 
+  /**
+   * @private
+   * @type {string}
+   */
+  this.apiKey_ = options.key;
+
+  /**
+   * @private
+   * @type {string}
+   */
+  this.imagerySet_ = options.imagerySet;
+
   var url = 'https://dev.virtualearth.net/REST/v1/Imagery/Metadata/' +
-      options.imagerySet +
-      '?uriScheme=https&include=ImageryProviders&key=' + options.key;
+      this.imagerySet_ +
+      '?uriScheme=https&include=ImageryProviders&key=' + this.apiKey_;
 
   ol.net.jsonp(url, this.handleImageryMetadataResponse.bind(this), undefined,
       'jsonp');
@@ -72,6 +84,28 @@ ol.source.BingMaps.TOS_ATTRIBUTION = new ol.Attribution({
 
 
 /**
+ * Get the api key used for this source.
+ *
+ * @return {string} The api key.
+ * @api
+ */
+ol.source.BingMaps.prototype.getApiKey = function() {
+  return this.apiKey_;
+};
+
+
+/**
+ * Get the imagery set associated with this source.
+ *
+ * @return {string} The imagery set.
+ * @api
+ */
+ol.source.BingMaps.prototype.getImagerySet = function() {
+  return this.imagerySet_;
+};
+
+
+/**
  * @param {BingMapsImageryMetadataResponse} response Response.
  */
 ol.source.BingMaps.prototype.handleImageryMetadataResponse = function(response) {
@@ -91,7 +125,7 @@ ol.source.BingMaps.prototype.handleImageryMetadataResponse = function(response) 
   }
   //var copyright = response.copyright;  // FIXME do we need to display this?
   var resource = response.resourceSets[0].resources[0];
-  goog.DEBUG && console.assert(resource.imageWidth == resource.imageHeight,
+  ol.DEBUG && console.assert(resource.imageWidth == resource.imageHeight,
       'resource has imageWidth equal to imageHeight, i.e. is square');
   var maxZoom = this.maxZoom_ == -1 ? resource.zoomMax : this.maxZoom_;
 
@@ -122,7 +156,7 @@ ol.source.BingMaps.prototype.handleImageryMetadataResponse = function(response) 
              * @return {string|undefined} Tile URL.
              */
             function(tileCoord, pixelRatio, projection) {
-              goog.DEBUG && console.assert(ol.proj.equivalent(
+              ol.DEBUG && console.assert(ol.proj.equivalent(
                   projection, sourceProjection),
                   'projections are equivalent');
               if (!tileCoord) {

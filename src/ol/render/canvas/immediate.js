@@ -6,7 +6,6 @@ goog.provide('ol.render.canvas.Immediate');
 
 goog.require('ol');
 goog.require('ol.array');
-goog.require('ol.color');
 goog.require('ol.colorlike');
 goog.require('ol.extent');
 goog.require('ol.geom.GeometryType');
@@ -252,8 +251,8 @@ ol.render.canvas.Immediate.prototype.drawImages_ = function(flatCoordinates, off
   if (!this.image_) {
     return;
   }
-  goog.DEBUG && console.assert(offset === 0, 'offset should be 0');
-  goog.DEBUG && console.assert(end == flatCoordinates.length,
+  ol.DEBUG && console.assert(offset === 0, 'offset should be 0');
+  ol.DEBUG && console.assert(end == flatCoordinates.length,
       'end should be equal to the length of flatCoordinates');
   var pixelCoordinates = ol.geom.flat.transform.transform2D(
       flatCoordinates, offset, end, 2, this.transform_,
@@ -317,8 +316,8 @@ ol.render.canvas.Immediate.prototype.drawText_ = function(flatCoordinates, offse
     this.setContextStrokeState_(this.textStrokeState_);
   }
   this.setContextTextState_(this.textState_);
-  goog.DEBUG && console.assert(offset === 0, 'offset should be 0');
-  goog.DEBUG && console.assert(end == flatCoordinates.length,
+  ol.DEBUG && console.assert(offset === 0, 'offset should be 0');
+  ol.DEBUG && console.assert(end == flatCoordinates.length,
       'end should be equal to the length of flatCoordinates');
   var pixelCoordinates = ol.geom.flat.transform.transform2D(
       flatCoordinates, offset, end, stride, this.transform_,
@@ -489,7 +488,7 @@ ol.render.canvas.Immediate.prototype.drawGeometry = function(geometry) {
       this.drawCircle(/** @type {ol.geom.Circle} */ (geometry));
       break;
     default:
-      goog.DEBUG && console.assert(false, 'Unsupported geometry type: ' + type);
+      ol.DEBUG && console.assert(false, 'Unsupported geometry type: ' + type);
   }
 };
 
@@ -683,16 +682,16 @@ ol.render.canvas.Immediate.prototype.drawMultiPolygon = function(geometry) {
     var endss = geometry.getEndss();
     var stride = geometry.getStride();
     var i, ii;
+    context.beginPath();
     for (i = 0, ii = endss.length; i < ii; ++i) {
       var ends = endss[i];
-      context.beginPath();
       offset = this.drawRings_(flatCoordinates, offset, ends, stride);
-      if (this.fillState_) {
-        context.fill();
-      }
-      if (this.strokeState_) {
-        context.stroke();
-      }
+    }
+    if (this.fillState_) {
+      context.fill();
+    }
+    if (this.strokeState_) {
+      context.stroke();
     }
   }
   if (this.text_ !== '') {
@@ -842,7 +841,7 @@ ol.render.canvas.Immediate.prototype.setFillStrokeStyle = function(fillStyle, st
           strokeStyleWidth : ol.render.canvas.defaultLineWidth),
       miterLimit: strokeStyleMiterLimit !== undefined ?
           strokeStyleMiterLimit : ol.render.canvas.defaultMiterLimit,
-      strokeStyle: ol.color.asString(strokeStyleColor ?
+      strokeStyle: ol.colorlike.asColorLike(strokeStyleColor ?
           strokeStyleColor : ol.render.canvas.defaultStrokeStyle)
     };
   }
@@ -864,7 +863,7 @@ ol.render.canvas.Immediate.prototype.setImageStyle = function(imageStyle) {
     var imageImage = imageStyle.getImage(1);
     var imageOrigin = imageStyle.getOrigin();
     var imageSize = imageStyle.getSize();
-    goog.DEBUG && console.assert(imageImage, 'imageImage must be truthy');
+    ol.DEBUG && console.assert(imageImage, 'imageImage must be truthy');
     this.imageAnchorX_ = imageAnchor[0];
     this.imageAnchorY_ = imageAnchor[1];
     this.imageHeight_ = imageSize[1];
@@ -922,7 +921,7 @@ ol.render.canvas.Immediate.prototype.setTextStyle = function(textStyle) {
             textStrokeStyleWidth : ol.render.canvas.defaultLineWidth,
         miterLimit: textStrokeStyleMiterLimit !== undefined ?
             textStrokeStyleMiterLimit : ol.render.canvas.defaultMiterLimit,
-        strokeStyle: ol.color.asString(textStrokeStyleColor ?
+        strokeStyle: ol.colorlike.asColorLike(textStrokeStyleColor ?
             textStrokeStyleColor : ol.render.canvas.defaultStrokeStyle)
       };
     }
