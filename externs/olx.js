@@ -1260,7 +1260,7 @@ olx.control.OverviewMapOptions.prototype.view;
  *     minWidth: (number|undefined),
  *     render: (function(ol.MapEvent)|undefined),
  *     target: (Element|undefined),
- *     units: (ol.control.ScaleLineUnits|string|undefined)}}
+ *     units: (ol.control.ScaleLine.Units|string|undefined)}}
  */
 olx.control.ScaleLineOptions;
 
@@ -1300,7 +1300,7 @@ olx.control.ScaleLineOptions.prototype.target;
 
 /**
  * Units. Default is `metric`.
- * @type {ol.control.ScaleLineUnits|string|undefined}
+ * @type {ol.control.ScaleLine.Units|string|undefined}
  * @api stable
  */
 olx.control.ScaleLineOptions.prototype.units;
@@ -2014,7 +2014,8 @@ olx.format.WFSOptions.prototype.schemaLocation;
  *     startIndex: (number|undefined),
  *     count: (number|undefined),
  *     bbox: (ol.Extent|undefined),
- *     filter: (ol.format.ogc.filter.Filter|undefined)}}
+ *     filter: (ol.format.ogc.filter.Filter|undefined),
+ *     resultType: (string|undefined)}}
  */
 olx.format.WFSWriteGetFeatureOptions;
 
@@ -2125,6 +2126,15 @@ olx.format.WFSWriteGetFeatureOptions.prototype.bbox;
  * @api
  */
 olx.format.WFSWriteGetFeatureOptions.prototype.filter;
+
+
+/**
+ * Indicates what response should be returned, E.g. `hits` only includes the
+ * `numberOfFeatures` attribute in the response and no features.
+ * @type {string|undefined}
+ * @api
+ */
+olx.format.WFSWriteGetFeatureOptions.prototype.resultType;
 
 
 /**
@@ -4190,7 +4200,7 @@ olx.source.TileUTFGridOptions.prototype.url;
  *            reprojectionErrorThreshold: (number|undefined),
  *            state: (ol.source.State|undefined),
  *            tileClass: (function(new: ol.ImageTile, ol.TileCoord,
- *                                 ol.TileState, string, ?string,
+ *                                 ol.Tile.State, string, ?string,
  *                                 ol.TileLoadFunctionType)|undefined),
  *            tileGrid: (ol.tilegrid.TileGrid|undefined),
  *            tileLoadFunction: (ol.TileLoadFunctionType|undefined),
@@ -4275,7 +4285,7 @@ olx.source.TileImageOptions.prototype.state;
 /**
  * Class used to instantiate image tiles. Default is {@link ol.ImageTile}.
  * @type {function(new: ol.ImageTile, ol.TileCoord,
- *                 ol.TileState, string, ?string,
+ *                 ol.Tile.State, string, ?string,
  *                 ol.TileLoadFunctionType)|undefined}
  * @api
  */
@@ -4356,10 +4366,11 @@ olx.source.TileImageOptions.prototype.wrapX;
  *            cacheSize: (number|undefined),
  *            format: (ol.format.Feature|undefined),
  *            logo: (string|olx.LogoOptions|undefined),
+ *            overlaps: (boolean|undefined),
  *            projection: ol.ProjectionLike,
  *            state: (ol.source.State|undefined),
  *            tileClass: (function(new: ol.VectorTile, ol.TileCoord,
- *                 ol.TileState, string, ol.format.Feature,
+ *                 ol.Tile.State, string, ol.format.Feature,
  *                 ol.TileLoadFunctionType)|undefined),
  *            tileGrid: (ol.tilegrid.TileGrid|undefined),
  *            tileLoadFunction: (ol.TileLoadFunctionType|undefined),
@@ -4406,6 +4417,17 @@ olx.source.VectorTileOptions.prototype.logo;
 
 
 /**
+ * This source may have overlapping geometries. Default is `true`. Setting this
+ * to `false` (e.g. for sources with polygons that represent administrative
+ * boundaries or TopoJSON sources) allows the renderer to optimise fill and
+ * stroke operations.
+ * @type {boolean|undefined}
+ * @api
+ */
+olx.source.VectorTileOptions.prototype.overlaps;
+
+
+/**
  * Projection.
  * @type {ol.ProjectionLike}
  * @api
@@ -4424,7 +4446,7 @@ olx.source.VectorTileOptions.prototype.state;
 /**
  * Class used to instantiate image tiles. Default is {@link ol.VectorTile}.
  * @type {function(new: ol.VectorTile, ol.TileCoord,
- *                 ol.TileState, string, ol.format.Feature,
+ *                 ol.Tile.State, string, ol.format.Feature,
  *                 ol.TileLoadFunctionType)|undefined}
  * @api
  */
@@ -4774,7 +4796,7 @@ olx.source.OSMOptions.prototype.tileLoadFunction;
 
 /**
  * URL template. Must include `{x}`, `{y}` or `{-y}`, and `{z}` placeholders.
- * Default is `//{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png`.
+ * Default is `https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png`.
  * @type {string|undefined}
  * @api stable
  */
@@ -4970,6 +4992,7 @@ olx.source.ImageCanvasOptions.prototype.state;
  *     logo: (string|olx.LogoOptions|undefined),
  *     projection: ol.ProjectionLike,
  *     ratio: (number|undefined),
+ *     renderBuffer: (number|undefined),
  *     resolutions: (Array.<number>|undefined),
  *     source: ol.source.Vector,
  *     style: (ol.style.Style|Array.<ol.style.Style>|ol.StyleFunction|undefined)}}
@@ -5009,6 +5032,17 @@ olx.source.ImageVectorOptions.prototype.projection;
  * @api
  */
 olx.source.ImageVectorOptions.prototype.ratio;
+
+
+/**
+ * The buffer around the viewport extent used by the renderer when getting
+ * features from the vector source for the rendering or hit-detection.
+ * Recommended value: the size of the largest symbol, line width or label.
+ * Default is 100 pixels.
+ * @type {number|undefined}
+ * @api
+ */
+olx.source.ImageVectorOptions.prototype.renderBuffer;
 
 
 /**
@@ -5835,6 +5869,7 @@ olx.source.TileWMSOptions.prototype.wrapX;
  *     format: (ol.format.Feature|undefined),
  *     loader: (ol.FeatureLoader|undefined),
  *     logo: (string|olx.LogoOptions|undefined),
+ *     overlaps: (boolean|undefined),
  *     strategy: (ol.LoadingStrategy|undefined),
  *     url: (string|ol.FeatureUrlFunction|undefined),
  *     useSpatialIndex: (boolean|undefined),
@@ -5888,6 +5923,17 @@ olx.source.VectorOptions.prototype.logo;
 
 
 /**
+ * This source may have overlapping geometries. Default is `true`. Setting this
+ * to `false` (e.g. for sources with polygons that represent administrative
+ * boundaries or TopoJSON sources) allows the renderer to optimise fill and
+ * stroke operations.
+ * @type {boolean|undefined}
+ * @api
+ */
+olx.source.VectorOptions.prototype.overlaps;
+
+
+/**
  * The loading strategy to use. By default an {@link ol.loadingstrategy.all}
  * strategy is used, a one-off strategy which loads all features at once.
  * @type {ol.LoadingStrategy|undefined}
@@ -5897,8 +5943,8 @@ olx.source.VectorOptions.prototype.strategy;
 
 
 /**
- * Setting this option instructs the source to use an XHR loader (see
- * {@link ol.featureloader.xhr}). Use a `string` and an
+ * Setting this option instructs the source to load features using an XHR loader
+ * (see {@link ol.featureloader.xhr}). Use a `string` and an
  * {@link ol.loadingstrategy.all} for a one-off download of all features from
  * the given URL. Use a {@link ol.FeatureUrlFunction} to generate the url with
  * other loading strategies.
@@ -5909,6 +5955,8 @@ olx.source.VectorOptions.prototype.strategy;
  * properly, this transformation will be incorrect. For some formats, the
  * default projection (usually EPSG:4326) can be overridden by setting the
  * defaultDataProjection constructor option on the format.
+ * Note that if a source contains non-feature data, such as a GeoJSON geometry
+ * or a KML NetworkLink, these will be ignored. Use a custom loader to load these.
  * @type {string|ol.FeatureUrlFunction|undefined}
  * @api
  */
@@ -5968,7 +6016,7 @@ olx.source.VectorOptions.prototype.wrapX;
  *     tileLoadFunction: (ol.TileLoadFunctionType|undefined),
  *     urls: (Array.<string>|undefined),
  *     tileClass: (function(new: ol.ImageTile, ol.TileCoord,
- *                          ol.TileState, string, ?string,
+ *                          ol.Tile.State, string, ?string,
  *                          ol.TileLoadFunctionType)|undefined),
  *     wrapX: (boolean|undefined)}}
  */
@@ -6063,7 +6111,7 @@ olx.source.WMTSOptions.prototype.style;
 /**
  * Class used to instantiate image tiles. Default is {@link ol.ImageTile}.
  * @type {function(new: ol.ImageTile, ol.TileCoord,
- *                 ol.TileState, string, ?string,
+ *                 ol.Tile.State, string, ?string,
  *                 ol.TileLoadFunctionType)|undefined}
  * @api
  */
@@ -6877,6 +6925,14 @@ olx.style.RegularShapeOptions.prototype.stroke;
 
 
 /**
+ * Whether to rotate the text with the view. Default is `false`.
+ * @type {boolean|undefined}
+ * @api
+ */
+olx.style.TextOptions.prototype.rotateWithView;
+
+
+/**
  * Rotation in radians (positive rotation clockwise). Default is `0`.
  * @type {number|undefined}
  * @api
@@ -6973,6 +7029,7 @@ olx.style.StrokeOptions.prototype.width;
  *     offsetX: (number|undefined),
  *     offsetY: (number|undefined),
  *     scale: (number|undefined),
+ *     rotateWithView: (boolean|undefined),
  *     rotation: (number|undefined),
  *     text: (string|undefined),
  *     textAlign: (string|undefined),
@@ -7436,7 +7493,7 @@ olx.view.FitOptions.prototype.maxZoom;
 /**
  * @typedef {{animate: boolean,
  *     attributions: Object.<string, ol.Attribution>,
- *     coordinateToPixelMatrix: ol.vec.Mat4.Number,
+ *     coordinateToPixelTransform: ol.Transform,
  *     extent: (null|ol.Extent),
  *     focus: ol.Coordinate,
  *     index: number,
@@ -7444,7 +7501,7 @@ olx.view.FitOptions.prototype.maxZoom;
  *     layerStatesArray: Array.<ol.LayerState>,
  *     logos: Object.<string, (string|Element)>,
  *     pixelRatio: number,
- *     pixelToCoordinateMatrix: ol.vec.Mat4.Number,
+ *     pixelToCoordinateTransform: ol.Transform,
  *     postRenderFunctions: Array.<ol.PostRenderFunction>,
  *     size: ol.Size,
  *     skippedFeatureUids: Object.<string, boolean>,

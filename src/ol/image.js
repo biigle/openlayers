@@ -1,12 +1,12 @@
 goog.provide('ol.Image');
 
-goog.require('goog.asserts');
+goog.require('ol');
 goog.require('ol.ImageBase');
 goog.require('ol.ImageState');
 goog.require('ol.events');
 goog.require('ol.events.EventType');
 goog.require('ol.extent');
-goog.require('ol.object');
+goog.require('ol.obj');
 
 
 /**
@@ -78,10 +78,10 @@ ol.inherits(ol.Image, ol.ImageBase);
 ol.Image.prototype.getImage = function(opt_context) {
   if (opt_context !== undefined) {
     var image;
-    var key = goog.getUid(opt_context);
+    var key = ol.getUid(opt_context);
     if (key in this.imageByContext_) {
       return this.imageByContext_[key];
-    } else if (ol.object.isEmpty(this.imageByContext_)) {
+    } else if (ol.obj.isEmpty(this.imageByContext_)) {
       image = this.image_;
     } else {
       image = /** @type {Image} */ (this.image_.cloneNode(false));
@@ -131,7 +131,7 @@ ol.Image.prototype.load = function() {
   if (this.state == ol.ImageState.IDLE || this.state == ol.ImageState.ERROR) {
     this.state = ol.ImageState.LOADING;
     this.changed();
-    goog.asserts.assert(!this.imageListenerKeys_,
+    goog.DEBUG && console.assert(!this.imageListenerKeys_,
         'this.imageListenerKeys_ should be null');
     this.imageListenerKeys_ = [
       ol.events.listenOnce(this.image_, ol.events.EventType.ERROR,
@@ -158,8 +158,6 @@ ol.Image.prototype.setImage = function(image) {
  * @private
  */
 ol.Image.prototype.unlistenImage_ = function() {
-  goog.asserts.assert(this.imageListenerKeys_,
-      'this.imageListenerKeys_ should not be null');
   this.imageListenerKeys_.forEach(ol.events.unlistenByKey);
   this.imageListenerKeys_ = null;
 };

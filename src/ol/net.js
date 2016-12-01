@@ -1,5 +1,7 @@
 goog.provide('ol.net');
 
+goog.require('ol');
+
 
 /**
  * Simple JSONP helper. Supports error callbacks and a custom callback param.
@@ -14,7 +16,7 @@ goog.provide('ol.net');
  */
 ol.net.jsonp = function(url, callback, opt_errback, opt_callbackParam) {
   var script = ol.global.document.createElement('script');
-  var key = 'olc_' + goog.getUid(callback);
+  var key = 'olc_' + ol.getUid(callback);
   function cleanup() {
     delete ol.global[key];
     script.parentNode.removeChild(script);

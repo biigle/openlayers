@@ -1,3 +1,5 @@
+/* eslint-disable openlayers-internal/no-missing-requires */
+
 /**
  * File for all typedefs used by the compiler, and referenced by JSDoc.
  *
@@ -104,7 +106,7 @@ ol.CircleRenderOptions;
  * red, green, and blue should be integers in the range 0..255 inclusive.
  * alpha should be a float in the range 0..1 inclusive. If no alpha value is
  * given then `1` will be used.
- * @typedef {Array.<number>}
+ * @typedef {Array.<number>|Uint8Array|Uint8ClampedArray}
  */
 ol.Color;
 
@@ -300,7 +302,9 @@ ol.LayerState;
 
 
 /**
- * One of `all`, `bbox`, `tile`.
+ * A function that takes an {@link ol.Extent} and a resolution as arguments, and
+ * returns an array of {@link ol.Extent} with the extents to load. Usually this
+ * is one of the standard {@link ol.loadingstrategy} strategies.
  *
  * @typedef {function(ol.Extent, number): Array.<ol.Extent>}
  */
@@ -330,10 +334,18 @@ ol.MapOptionsInternal;
 
 
 /**
+ * An array representing an affine 2d transformation for use with
+ * {@link ol.transform} functions. The array has 6 elements.
+ * @typedef {Array.<number>}
+ */
+ol.Transform;
+
+
+/**
  * @typedef {{depth: (Array.<number>|undefined),
  *            feature: ol.Feature,
  *            geometry: ol.geom.SimpleGeometry,
- *            index: (number|undefined),
+ *            index: (number),
  *            segment: Array.<ol.Extent>}}
  */
 ol.ModifySegmentDataType;
@@ -597,7 +609,7 @@ ol.TilePriorityFunction;
  *     renderedRenderOrder: (null|function(ol.Feature, ol.Feature):number),
  *     renderedTileRevision: number,
  *     renderedRevision: number,
- *     replayGroup: ol.render.IReplayGroup,
+ *     replayGroup: ol.render.ReplayGroup,
  *     skippedFeatures: Array.<string>}}
  */
 ol.TileReplayState;
