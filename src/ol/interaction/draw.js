@@ -137,7 +137,7 @@ ol.interaction.Draw = function(options) {
       };
     } else if (this.type_ === ol.geom.GeometryType.RECTANGLE) {
       // use LineString mode so the geometry always has an end point
-      this.mode_ = ol.interaction.DrawMode.LINE_STRING;
+      this.mode_ = ol.interaction.Draw.Mode.LINE_STRING;
       this.minPoints_ = 3;
       this.maxPoints_ = 3;
       /**
