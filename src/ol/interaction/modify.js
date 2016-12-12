@@ -3,7 +3,7 @@ goog.provide('ol.interaction.Modify');
 goog.require('ol');
 goog.require('ol.Collection');
 goog.require('ol.Feature');
-goog.require('ol.MapBrowserEvent.EventType');
+goog.require('ol.MapBrowserEvent');
 goog.require('ol.MapBrowserPointerEvent');
 goog.require('ol.View');
 goog.require('ol.array');
@@ -199,7 +199,7 @@ ol.interaction.Modify.prototype.addFeature_ = function(feature) {
     this.SEGMENT_WRITERS_[geometry.getType()].call(this, feature, geometry);
   }
   var map = this.getMap();
-  if (map) {
+  if (map && map.isRendered()) {
     this.handlePointerAtPixel_(this.lastPixel_, map);
   }
   ol.events.listen(feature, ol.events.EventType.CHANGE,
@@ -581,7 +581,7 @@ ol.interaction.Modify.handleDragEvent_ = function(evt) {
     var index = dragSegment[1];
 
     while (vertex.length < geometry.getStride()) {
-      vertex.push(0);
+      vertex.push(segment[index][vertex.length]);
     }
 
     switch (geometry.getType()) {
@@ -749,11 +749,9 @@ ol.interaction.Modify.prototype.handlePointerAtPixel_ = function(pixel, map) {
         ol.coordinate.squaredDistanceToSegment(pixelCoordinate, b.segment);
   };
 
-  var lowerLeft = map.getCoordinateFromPixel(
-      [pixel[0] - this.pixelTolerance_, pixel[1] + this.pixelTolerance_]);
-  var upperRight = map.getCoordinateFromPixel(
-      [pixel[0] + this.pixelTolerance_, pixel[1] - this.pixelTolerance_]);
-  var box = ol.extent.boundingExtent([lowerLeft, upperRight]);
+  var box = ol.extent.buffer(
+      ol.extent.createOrUpdateFromCoordinate(pixelCoordinate),
+      map.getView().getResolution() * this.pixelTolerance_);
 
   var rBush = this.rBush_;
   var nodes = rBush.getInExtent(box);
@@ -874,16 +872,16 @@ ol.interaction.Modify.prototype.insertVertex_ = function(segmentData, vertex) {
  * @api
  */
 ol.interaction.Modify.prototype.removePoint = function() {
-  var handled = false;
   if (this.lastPointerEvent_ && this.lastPointerEvent_.type != ol.MapBrowserEvent.EventType.POINTERDRAG) {
     var evt = this.lastPointerEvent_;
     this.willModifyFeatures_(evt);
-    handled = this.removeVertex_();
+    this.removeVertex_();
     this.dispatchEvent(new ol.interaction.Modify.Event(
         ol.interaction.Modify.EventType.MODIFYEND, this.features_, evt));
     this.modified_ = false;
+    return true;
   }
-  return handled;
+  return false;
 };
 
 /**

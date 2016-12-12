@@ -303,6 +303,36 @@ olx.MapOptions.prototype.view;
 
 
 /**
+ * Object literal with options for the {@link ol.Map#forEachFeatureAtPixel} and
+ * {@link ol.Map#hasFeatureAtPixel} methods.
+ * @typedef {{layerFilter: ((function(ol.layer.Layer): boolean)|undefined),
+ *    hitTolerance: (number|undefined)}}
+ */
+olx.AtPixelOptions;
+
+
+/**
+ * Layer filter function. The filter function will receive one argument, the
+ * {@link ol.layer.Layer layer-candidate} and it should return a boolean value.
+ * Only layers which are visible and for which this function returns `true`
+ * will be tested for features. By default, all visible layers will be tested.
+ * @type {((function(ol.layer.Layer): boolean)|undefined)}
+ * @api stable
+ */
+olx.AtPixelOptions.prototype.layerFilter;
+
+
+/**
+ * Hit-detection tolerance in pixels. Pixels inside the radius around the given position
+ * will be checked for features. This only works for the canvas renderer and
+ * not for WebGL.
+ * @type {number|undefined}
+ * @api
+ */
+olx.AtPixelOptions.prototype.hitTolerance;
+
+
+/**
  * Object literal with config options for the overlay.
  * @typedef {{id: (number|string|undefined),
  *     element: (Element|undefined),
@@ -312,7 +342,7 @@ olx.MapOptions.prototype.view;
  *     stopEvent: (boolean|undefined),
  *     insertFirst: (boolean|undefined),
  *     autoPan: (boolean|undefined),
- *     autoPanAnimation: (olx.animation.PanOptions|undefined),
+ *     autoPanAnimation: (olx.OverlayPanOptions|undefined),
  *     autoPanMargin: (number|undefined)}}
  */
 olx.OverlayOptions;
@@ -398,10 +428,10 @@ olx.OverlayOptions.prototype.autoPan;
 
 
 /**
- * The options used to create a `ol.animation.pan` animation. This animation
- * is only used when `autoPan` is enabled. By default the default options for
- * `ol.animation.pan` are used. If set to `null` the panning is not animated.
- * @type {olx.animation.PanOptions|undefined}
+ * The animation options used to pan the overlay into view. This animation
+ * is only used when `autoPan` is enabled. A `duration` and `easing` may be
+ * provided to customize the animation.
+ * @type {olx.OverlayPanOptions|undefined}
  * @api
  */
 olx.OverlayOptions.prototype.autoPanAnimation;
@@ -414,6 +444,32 @@ olx.OverlayOptions.prototype.autoPanAnimation;
  * @api
  */
 olx.OverlayOptions.prototype.autoPanMargin;
+
+
+/**
+ * @typedef {{
+ *   duration: (number|undefined),
+ *   easing: (undefined|function(number):number)
+ * }}
+ */
+olx.OverlayPanOptions;
+
+
+/**
+ * The duration of the animation in milliseconds. Default is `1000`.
+ * @type {number|undefined}
+ * @api
+ */
+olx.OverlayPanOptions.prototype.duration;
+
+
+/**
+ * The easing function to use. Can be an {@link ol.easing} or a custom function.
+ * Default is {@link ol.easing.inAndOut}.
+ * @type {undefined|function(number):number}
+ * @api
+ */
+olx.OverlayPanOptions.prototype.easing;
 
 
 /**
@@ -662,6 +718,81 @@ olx.ViewOptions.prototype.zoomFactor;
 
 
 /**
+ * @typedef {{
+ *   center: (ol.Coordinate|undefined),
+ *   zoom: (number|undefined),
+ *   resolution: (number|undefined),
+ *   rotation: (number|undefined),
+ *   anchor: (ol.Coordinate|undefined),
+ *   duration: (number|undefined),
+ *   easing: (undefined|function(number):number)
+ * }}
+ */
+olx.AnimationOptions;
+
+
+/**
+ * The center of the view at the end of the animation.
+ * @type {ol.Coordinate|undefined}
+ * @api
+ */
+olx.AnimationOptions.prototype.center;
+
+
+/**
+ * The zoom level of the view at the end of the animation.  This takes
+ * precedence over `resolution`.
+ * @type {number|undefined}
+ * @api
+ */
+olx.AnimationOptions.prototype.zoom;
+
+
+/**
+ * The resolution of the view at the end of the animation.  If `zoom` is also
+ * provided, this option will be ignored.
+ * @type {number|undefined}
+ * @api
+ */
+olx.AnimationOptions.prototype.resolution;
+
+
+/**
+ * The rotation of the view at the end of the animation.
+ * @type {number|undefined}
+ * @api
+ */
+olx.AnimationOptions.prototype.rotation;
+
+
+/**
+ * Optional anchor to remained fixed during a rotation or resolution animation.
+ * @type {ol.Coordinate|undefined}
+ * @api
+ */
+olx.AnimationOptions.prototype.anchor;
+
+
+/**
+ * The duration of the animation in milliseconds (defaults to `1000`).
+ * @type {number|undefined}
+ * @api
+ */
+olx.AnimationOptions.prototype.duration;
+
+
+/**
+ * The easing function used during the animation (defaults to {@link ol.easing.inAndOut}).
+ * The function will be called for each frame with a number representing a
+ * fraction of the animation's duration.  The function should return a number
+ * between 0 and 1 representing the progress toward the destination state.
+ * @type {undefined|function(number):number}
+ * @api
+ */
+olx.AnimationOptions.prototype.easing;
+
+
+/**
  * Namespace.
  * @type {Object}
  */
@@ -672,7 +803,7 @@ olx.animation;
  * @typedef {{resolution: number,
  *     start: (number|undefined),
  *     duration: (number|undefined),
- *     easing: (function(number):number|undefined)}}
+ *     easing: (undefined|function(number):number)}}
  */
 olx.animation.BounceOptions;
 
@@ -705,7 +836,7 @@ olx.animation.BounceOptions.prototype.duration;
 /**
  * The easing function to use. Can be an {@link ol.easing} or a custom function.
  * Default is {@link ol.easing.upAndDown}.
- * @type {function(number):number|undefined}
+ * @type {undefined|function(number):number}
  * @api
  */
 olx.animation.BounceOptions.prototype.easing;
@@ -715,7 +846,7 @@ olx.animation.BounceOptions.prototype.easing;
  * @typedef {{source: ol.Coordinate,
  *     start: (number|undefined),
  *     duration: (number|undefined),
- *     easing: (function(number):number|undefined)}}
+ *     easing: (undefined|function(number):number)}}
  */
 olx.animation.PanOptions;
 
@@ -747,7 +878,7 @@ olx.animation.PanOptions.prototype.duration;
 /**
  * The easing function to use. Can be an {@link ol.easing} or a custom function.
  * Default is {@link ol.easing.inAndOut}.
- * @type {function(number):number|undefined}
+ * @type {undefined|function(number):number}
  * @api
  */
 olx.animation.PanOptions.prototype.easing;
@@ -758,7 +889,7 @@ olx.animation.PanOptions.prototype.easing;
  *     anchor: (ol.Coordinate|undefined),
  *     start: (number|undefined),
  *     duration: (number|undefined),
- *     easing: (function(number):number|undefined)}}
+ *     easing: (undefined|function(number):number)}}
  */
 olx.animation.RotateOptions;
 
@@ -800,7 +931,7 @@ olx.animation.RotateOptions.prototype.duration;
 /**
  * The easing function to use. Can be an {@link ol.easing} or a custom function.
  * Default is {@link ol.easing.inAndOut}.
- * @type {function(number):number|undefined}
+ * @type {undefined|function(number):number}
  * @api
  */
 olx.animation.RotateOptions.prototype.easing;
@@ -810,7 +941,7 @@ olx.animation.RotateOptions.prototype.easing;
  * @typedef {{resolution: number,
  *     start: (number|undefined),
  *     duration: (number|undefined),
- *     easing: (function(number):number|undefined)}}
+ *     easing: (undefined|function(number):number)}}
  */
 olx.animation.ZoomOptions;
 
@@ -843,7 +974,7 @@ olx.animation.ZoomOptions.prototype.duration;
 /**
  * The easing function to use. Can be an {@link ol.easing} or a custom function.
  * Default is {@link ol.easing.inAndOut}.
- * @type {function(number):number|undefined}
+ * @type {undefined|function(number):number}
  * @api
  */
 olx.animation.ZoomOptions.prototype.easing;
@@ -2770,7 +2901,8 @@ olx.interaction.ExtentOptions.prototype.wrapX;
 /**
  * @typedef {{
  *     features: (ol.Collection.<ol.Feature>|undefined),
- *     layers: (undefined|Array.<ol.layer.Layer>|function(ol.layer.Layer): boolean)
+ *     layers: (undefined|Array.<ol.layer.Layer>|function(ol.layer.Layer): boolean),
+ *     hitTolerance: (number|undefined)
  * }}
  */
 olx.interaction.TranslateOptions;
@@ -2795,6 +2927,16 @@ olx.interaction.TranslateOptions.prototype.features;
  * @api
  */
 olx.interaction.TranslateOptions.prototype.layers;
+
+
+/**
+ * Hit-detection tolerance. Pixels inside the radius around the given position
+ * will be checked for features. This only works for the canvas renderer and
+ * not for WebGL.
+ * @type {number|undefined}
+ * @api
+ */
+olx.interaction.TranslateOptions.prototype.hitTolerance;
 
 
 /**
@@ -3003,6 +3145,13 @@ olx.interaction.PinchZoomOptions;
  */
 olx.interaction.PinchZoomOptions.prototype.duration;
 
+/**
+ * Zoom to the closest integer zoom level after the pinch gesture ends. Default is `false`.
+ * @type {boolean|undefined}
+ * @api
+ */
+olx.interaction.PinchZoomOptions.prototype.constrainResolution;
+
 
 /**
  * @typedef {{handleDownEvent: (function(ol.MapBrowserPointerEvent):boolean|undefined),
@@ -3072,7 +3221,8 @@ olx.interaction.PointerOptions.prototype.handleUpEvent;
  *     multi: (boolean|undefined),
  *     features: (ol.Collection.<ol.Feature>|undefined),
  *     filter: (ol.SelectFilterFunction|undefined),
- *     wrapX: (boolean|undefined)}}
+ *     wrapX: (boolean|undefined),
+ *     hitTolerance: (number|undefined)}}
  */
 olx.interaction.SelectOptions;
 
@@ -3184,6 +3334,16 @@ olx.interaction.SelectOptions.prototype.filter;
  * @api
  */
 olx.interaction.SelectOptions.prototype.wrapX;
+
+
+/**
+ * Hit-detection tolerance. Pixels inside the radius around the given position
+ * will be checked for features. This only works for the canvas renderer and
+ * not for WebGL.
+ * @type {number|undefined}
+ * @api
+ */
+olx.interaction.SelectOptions.prototype.hitTolerance;
 
 
 /**
@@ -3852,6 +4012,7 @@ olx.layer.VectorOptions.prototype.visible;
  *     minResolution: (number|undefined),
  *     maxResolution: (number|undefined),
  *     opacity: (number|undefined),
+ *     preload: (number|undefined),
  *     renderBuffer: (number|undefined),
  *     renderMode: (ol.layer.VectorTile.RenderType|string|undefined),
  *     renderOrder: (function(ol.Feature, ol.Feature):number|undefined),
@@ -3947,6 +4108,15 @@ olx.layer.VectorTileOptions.prototype.opacity;
 
 
 /**
+ * Preload. Load low-resolution tiles up to `preload` levels. By default
+ * `preload` is `0`, which means no preloading.
+ * @type {number|undefined}
+ * @api stable
+ */
+olx.layer.VectorTileOptions.prototype.preload;
+
+
+/**
  * Source.
  * @type {ol.source.VectorTile|undefined}
  * @api stable
@@ -4034,6 +4204,7 @@ olx.source;
 /**
  * @typedef {{cacheSize: (number|undefined),
  *     culture: (string|undefined),
+ *     hidpi: (boolean|undefined),
  *     key: string,
  *     imagerySet: string,
  *     maxZoom: (number|undefined),
@@ -4050,6 +4221,14 @@ olx.source.BingMapsOptions;
  * @api
  */
 olx.source.BingMapsOptions.prototype.cacheSize;
+
+
+/**
+ * If `true` hidpi tiles will be requested. Default is `false`.
+ * @type {boolean|undefined}
+ * @api
+ */
+olx.source.BingMapsOptions.prototype.hidpi;
 
 
 /**
@@ -5147,7 +5326,7 @@ olx.source.ImageVectorOptions.prototype.style;
  *     operation: (ol.RasterOperation|undefined),
  *     lib: (Object|undefined),
  *     threads: (number|undefined),
- *     operationType: (ol.RasterOperationType|undefined)}}
+ *     operationType: (ol.source.Raster.OperationType|undefined)}}
  * @api
  */
 olx.source.RasterOptions;
@@ -5195,7 +5374,7 @@ olx.source.RasterOptions.prototype.threads;
  * `'pixel'` operations are assumed, and operations will be called with an
  * array of pixels from input sources.  If set to `'image'`, operations will
  * be called with an array of ImageData objects from input sources.
- * @type {ol.RasterOperationType|undefined}
+ * @type {ol.source.Raster.OperationType|undefined}
  * @api
  */
 olx.source.RasterOptions.prototype.operationType;
@@ -7512,7 +7691,10 @@ olx.view;
  *     constrainResolution: (boolean|undefined),
  *     nearest: (boolean|undefined),
  *     maxZoom: (number|undefined),
- *     minResolution: (number|undefined)}}
+ *     minResolution: (number|undefined),
+ *     duration: (number|undefined),
+ *     easing: (undefined|function(number):number)
+ * }}
  */
 olx.view.FitOptions;
 
@@ -7557,6 +7739,26 @@ olx.view.FitOptions.prototype.minResolution;
  * @api
  */
 olx.view.FitOptions.prototype.maxZoom;
+
+
+/**
+ * The duration of the animation in milliseconds. By default, there is no
+ * animations.
+ * @type {number|undefined}
+ * @api
+ */
+olx.view.FitOptions.prototype.duration;
+
+
+/**
+ * The easing function used during the animation (defaults to {@link ol.easing.inAndOut}).
+ * The function will be called for each frame with a number representing a
+ * fraction of the animation's duration.  The function should return a number
+ * between 0 and 1 representing the progress toward the destination state.
+ * @type {undefined|function(number):number}
+ * @api
+ */
+olx.view.FitOptions.prototype.easing;
 
 
 /* typedefs for object literals exposed by the library */
