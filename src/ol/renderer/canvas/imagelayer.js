@@ -1,9 +1,8 @@
 goog.provide('ol.renderer.canvas.ImageLayer');
 
 goog.require('ol');
-goog.require('ol.View');
+goog.require('ol.ViewHint');
 goog.require('ol.extent');
-goog.require('ol.proj');
 goog.require('ol.renderer.canvas.IntermediateCanvas');
 goog.require('ol.transform');
 
@@ -72,14 +71,12 @@ ol.renderer.canvas.ImageLayer.prototype.prepareFrame = function(frameState, laye
         renderedExtent, layerState.extent);
   }
 
-  if (!hints[ol.View.Hint.ANIMATING] && !hints[ol.View.Hint.INTERACTING] &&
+  if (!hints[ol.ViewHint.ANIMATING] && !hints[ol.ViewHint.INTERACTING] &&
       !ol.extent.isEmpty(renderedExtent)) {
     var projection = viewState.projection;
     if (!ol.ENABLE_RASTER_REPROJECTION) {
       var sourceProjection = imageSource.getProjection();
       if (sourceProjection) {
-        ol.DEBUG && console.assert(ol.proj.equivalent(projection, sourceProjection),
-            'projection and sourceProjection are equivalent');
         projection = sourceProjection;
       }
     }
@@ -89,7 +86,6 @@ ol.renderer.canvas.ImageLayer.prototype.prepareFrame = function(frameState, laye
       var loaded = this.loadImage(image);
       if (loaded) {
         this.image_ = image;
-        this.renderedResolution = viewResolution;
       }
     }
   }
@@ -115,6 +111,7 @@ ol.renderer.canvas.ImageLayer.prototype.prepareFrame = function(frameState, laye
 
     this.updateAttributions(frameState.attributions, image.getAttributions());
     this.updateLogos(frameState, imageSource);
+    this.renderedResolution = viewResolution * pixelRatio / imagePixelRatio;
   }
 
   return !!this.image_;

@@ -1,7 +1,10 @@
 goog.provide('ol.source.Canvas');
 
-goog.require('ol.ImageCanvas');
+goog.require('ol');
+goog.require('ol.proj');
 goog.require('ol.extent');
+goog.require('ol.events');
+goog.require('ol.ImageCanvas');
 goog.require('ol.source.Image');
 
 

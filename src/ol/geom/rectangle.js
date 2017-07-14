@@ -1,5 +1,6 @@
 goog.provide('ol.geom.Rectangle');
 
+goog.require('ol');
 goog.require('ol.geom.Polygon');
 
 

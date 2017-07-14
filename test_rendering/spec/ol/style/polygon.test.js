@@ -86,7 +86,7 @@ describe('ol.rendering.style.Polygon', function() {
     }
 
     it('tests the canvas renderer', function(done) {
-      map = createMap('webgl');
+      map = createMap('canvas');
       createFeatures();
       expectResemble(map, 'spec/ol/style/expected/polygon-types-canvas.png',
           IMAGE_TOLERANCE, done);
@@ -299,7 +299,7 @@ describe('ol.rendering.style.Polygon', function() {
     function createRainbowGradient() {
       var canvas = document.createElement('canvas');
       var context = canvas.getContext('2d');
-      var gradient = context.createLinearGradient(0,0,30,0);
+      var gradient = context.createLinearGradient(0, 0, 30, 0);
       gradient.addColorStop(0, 'red');
       gradient.addColorStop(1 / 6, 'orange');
       gradient.addColorStop(2 / 6, 'yellow');
