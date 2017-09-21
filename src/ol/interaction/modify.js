@@ -972,6 +972,8 @@ ol.interaction.Modify.closestOnSegmentData_ = function(pointCoordinates, segment
   if (geometry.getType() === ol.geom.GeometryType.CIRCLE &&
   segmentData.index === ol.interaction.Modify.MODIFY_SEGMENT_CIRCLE_CIRCUMFERENCE_INDEX) {
     return geometry.getClosestPoint(pointCoordinates);
+  } else if (geometry.getType() === ol.geom.GeometryType.ELLIPSE || geometry.getType() === ol.geom.GeometryType.RECTANGLE) {
+    return geometry.getClosestPoint(pointCoordinates);
   }
   return ol.coordinate.closestOnSegment(pointCoordinates, segmentData.segment);
 };

@@ -9,5 +9,6 @@ ol.render.ReplayType = {
   IMAGE: 'Image',
   LINE_STRING: 'LineString',
   POLYGON: 'Polygon',
-  TEXT: 'Text'
+  TEXT: 'Text',
+  ELLIPSE: 'Ellipse'
 };

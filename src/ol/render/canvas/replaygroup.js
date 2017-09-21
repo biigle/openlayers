@@ -390,5 +390,6 @@ ol.render.canvas.ReplayGroup.BATCH_CONSTRUCTORS_ = {
   'Image': ol.render.canvas.ImageReplay,
   'LineString': ol.render.canvas.LineStringReplay,
   'Polygon': ol.render.canvas.PolygonReplay,
-  'Text': ol.render.canvas.TextReplay
+  'Text': ol.render.canvas.TextReplay,
+  'Ellipse': ol.render.canvas.PolygonReplay,
 };

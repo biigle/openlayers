@@ -16,5 +16,6 @@ ol.render.canvas.Instruction = {
   SET_FILL_STYLE: 9,
   SET_STROKE_STYLE: 10,
   SET_TEXT_STYLE: 11,
-  STROKE: 12
+  STROKE: 12,
+  ELLIPSE: 13
 };

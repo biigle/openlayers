@@ -300,6 +300,32 @@ ol.renderer.vector.renderPolygonGeometry_ = function(replayGroup, geometry, styl
   }
 };
 
+/**
+ * @param {ol.render.ReplayGroup} replayGroup Replay group.
+ * @param {ol.geom.Ellipse} geometry Geometry.
+ * @param {ol.style.Style} style Style.
+ * @param {ol.Feature} feature Feature.
+ * @private
+ */
+ol.renderer.vector.renderEllipseGeometry_ = function(replayGroup, geometry, style, feature) {
+  var fillStyle = style.getFill();
+  var strokeStyle = style.getStroke();
+  if (fillStyle || strokeStyle) {
+    var ellipseReplay = replayGroup.getReplay(
+        style.getZIndex(), ol.render.ReplayType.ELLIPSE);
+    ellipseReplay.setFillStrokeStyle(fillStyle, strokeStyle);
+    ellipseReplay.drawEllipse(geometry, feature);
+  }
+  var textStyle = style.getText();
+  if (textStyle) {
+    var textReplay = replayGroup.getReplay(
+        style.getZIndex(), ol.render.ReplayType.TEXT);
+    textReplay.setTextStyle(textStyle);
+    textReplay.drawText(
+        geometry.getFlatInteriorPoint(), 0, 2, 2, geometry, feature);
+  }
+};
+
 
 /**
  * @const
@@ -318,5 +344,5 @@ ol.renderer.vector.GEOMETRY_RENDERERS_ = {
   'GeometryCollection': ol.renderer.vector.renderGeometryCollectionGeometry_,
   'Circle': ol.renderer.vector.renderCircleGeometry_,
   'Rectangle': ol.renderer.vector.renderPolygonGeometry_,
-  'Ellipse': ol.renderer.vector.renderPolygonGeometry_
+  'Ellipse': ol.renderer.vector.renderEllipseGeometry_
 };

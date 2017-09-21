@@ -35,6 +35,12 @@ ol.render.VectorContext.prototype.setStyle = function(style) {};
  */
 ol.render.VectorContext.prototype.drawCircle = function(circleGeometry, feature) {};
 
+/**
+ * @param {ol.geom.Ellipse} ellipseGeometry Ellipse geometry.
+ * @param {ol.Feature} feature Feature.
+ */
+ol.render.VectorContext.prototype.drawEllipse = function(ellipseGeometry, feature) {};
+
 
 /**
  * @param {ol.Feature} feature Feature.

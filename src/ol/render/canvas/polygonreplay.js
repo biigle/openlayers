@@ -166,6 +166,51 @@ ol.render.canvas.PolygonReplay.prototype.drawCircle = function(circleGeometry, f
   this.endGeometry(circleGeometry, feature);
 };
 
+/**
+ * @inheritDoc
+ */
+ol.render.canvas.PolygonReplay.prototype.drawEllipse = function(ellipseGeometry, feature) {
+  var state = this.state_;
+  var fillStyle = state.fillStyle;
+  var strokeStyle = state.strokeStyle;
+  if (fillStyle === undefined && strokeStyle === undefined) {
+    return;
+  }
+  this.setFillStrokeStyles_(ellipseGeometry);
+  this.beginGeometry(ellipseGeometry, feature);
+  // always fill the circle for hit detection
+  this.hitDetectionInstructions.push([
+    ol.render.canvas.Instruction.SET_FILL_STYLE,
+    ol.color.asString(ol.render.canvas.defaultFillStyle)
+  ]);
+  if (state.strokeStyle !== undefined) {
+    this.hitDetectionInstructions.push([
+      ol.render.canvas.Instruction.SET_STROKE_STYLE,
+      state.strokeStyle, state.lineWidth, state.lineCap, state.lineJoin,
+      state.miterLimit, state.lineDash, state.lineDashOffset, true, 1
+    ]);
+  }
+  var flatCoordinates = ellipseGeometry.getFlatCoordinates();
+  var stride = ellipseGeometry.getStride();
+  var myBegin = this.coordinates.length;
+  this.appendFlatCoordinates(
+      flatCoordinates, 0, flatCoordinates.length, stride, false, false);
+  var beginPathInstruction = [ol.render.canvas.Instruction.BEGIN_PATH];
+  var circleInstruction = [ol.render.canvas.Instruction.ELLIPSE, myBegin];
+  this.instructions.push(beginPathInstruction, circleInstruction);
+  this.hitDetectionInstructions.push(beginPathInstruction, circleInstruction);
+  var fillInstruction = [ol.render.canvas.Instruction.FILL];
+  this.hitDetectionInstructions.push(fillInstruction);
+  if (state.fillStyle !== undefined) {
+    this.instructions.push(fillInstruction);
+  }
+  if (state.strokeStyle !== undefined) {
+    var strokeInstruction = [ol.render.canvas.Instruction.STROKE];
+    this.instructions.push(strokeInstruction);
+    this.hitDetectionInstructions.push(strokeInstruction);
+  }
+  this.endGeometry(ellipseGeometry, feature);
+};
 
 /**
  * @inheritDoc
