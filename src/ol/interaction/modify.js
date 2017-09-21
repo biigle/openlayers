@@ -165,6 +165,7 @@ ol.interaction.Modify = function(options) {
     'MultiLineString': this.writeMultiLineStringGeometry_,
     'MultiPolygon': this.writeMultiPolygonGeometry_,
     'Rectangle': this.writePolygonGeometry_,
+    'Ellipse': this.writePolygonGeometry_,
     'Circle': this.writeCircleGeometry_,
     'GeometryCollection': this.writeGeometryCollectionGeometry_
   };
@@ -712,9 +713,41 @@ ol.interaction.Modify.handleDragEvent_ = function(evt) {
 
         // update position of dragged vertex
         coords[segmentData.index + index] = vertex;
-        // refresh rBush with all vertices of the rectangle
-        this.features_.remove(segmentData.feature);
-        this.features_.push(segmentData.feature);
+        break;
+      case ol.geom.GeometryType.ELLIPSE:
+        coordinates = geometry.getCoordinates();
+        var coords = coordinates[depth[0]];
+        // Vertex left from the dragged vertex.
+        var left = coords[(segmentData.index + index + 1) % 4];
+        // Vertex across from the dragged vertex.
+        var across = coords[(segmentData.index + index + 2) % 4];
+        // Vertex right from the dragged vertex.
+        var right = coords[(segmentData.index + index + 3) % 4];
+
+        // Half the distance between left and right.
+        var radius = Math.sqrt(Math.pow(left[0] - right[0], 2) + Math.pow(left[1] - right[1], 2)) / 2;
+        // Vector from across to dragged.
+        var acrossToDragged = [vertex[0] - across[0], vertex[1] - across[1]];
+        // Vector perpendicular to acrossToDragged.
+        var pAcrossToDragged = [-1 * acrossToDragged[1], acrossToDragged[0]];
+        // Bring vector to unit length.
+        var length = Math.sqrt(pAcrossToDragged[0] * pAcrossToDragged[0] + pAcrossToDragged[1] * pAcrossToDragged[1]);
+        pAcrossToDragged[0] = pAcrossToDragged[0] / length;
+        pAcrossToDragged[1] = pAcrossToDragged[1] / length;
+
+        // New center point.
+        var center = [across[0] + acrossToDragged[0] / 2, across[1] + acrossToDragged[1] / 2]
+
+        coords[(segmentData.index + index + 1) % 4] = [
+          center[0] + pAcrossToDragged[0] * radius,
+          center[1] + pAcrossToDragged[1] * radius,
+        ];
+        coords[(segmentData.index + index + 3) % 4] = [
+          center[0] - pAcrossToDragged[0] * radius,
+          center[1] - pAcrossToDragged[1] * radius,
+        ];
+        // Update position of dragged vertex.
+        coords[segmentData.index + index] = vertex;
         break;
       case ol.geom.GeometryType.CIRCLE:
         segment[0] = segment[1] = vertex;
@@ -752,8 +785,10 @@ ol.interaction.Modify.handleUpEvent_ = function(evt) {
   for (var i = this.dragSegments_.length - 1; i >= 0; --i) {
     segmentData = this.dragSegments_[i][0];
     geometry = segmentData.geometry;
-    if (geometry.getType() === ol.geom.GeometryType.RECTANGLE) {
-      continue;
+    if (geometry.getType() === ol.geom.GeometryType.RECTANGLE || geometry.getType() === ol.geom.GeometryType.ELLIPSE) {
+      // Refresh rBush with all vertices of the feature.
+      this.features_.remove(segmentData.feature);
+      this.features_.push(segmentData.feature);
     } else if (geometry.getType() === ol.geom.GeometryType.CIRCLE) {
       // Update a circle object in the R* bush:
       var coordinates = geometry.getCenter();

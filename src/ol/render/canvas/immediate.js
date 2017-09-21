@@ -467,6 +467,7 @@ ol.render.canvas.Immediate.prototype.drawGeometry = function(geometry) {
       break;
     case ol.geom.GeometryType.POLYGON:
     case ol.geom.GeometryType.RECTANGLE:
+    case ol.geom.GeometryType.ELLIPSE:
       this.drawPolygon(/** @type {ol.geom.Polygon} */ (geometry));
       break;
     case ol.geom.GeometryType.MULTI_POINT:

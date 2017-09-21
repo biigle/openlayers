@@ -19,6 +19,7 @@ goog.require('ol.geom.MultiPolygon');
 goog.require('ol.geom.Point');
 goog.require('ol.geom.Polygon');
 goog.require('ol.geom.Rectangle');
+goog.require('ol.geom.Ellipse');
 goog.require('ol.interaction.DrawEventType');
 goog.require('ol.interaction.Pointer');
 goog.require('ol.interaction.Property');
@@ -155,12 +156,15 @@ ol.interaction.Draw = function(options) {
       geometryFunction = function(coordinates, opt_geometry) {
 
         /*
-         * ---a_vec--->
-         * ------------
-         * |          |
-         * 1          2        |
-         * |          | intersection_vec
-         * ------<3>---        v
+         *   a_vec
+         * -------->
+         * +-------+
+         * |       |
+         * |       |
+         * 1       2
+         * |       |   | intersection_vec
+         * |       |   v
+         * +-------+------<3>-- (the third point may be anywhere on this line)
          */
 
         if (coordinates.length > 2) {
@@ -204,6 +208,80 @@ ol.interaction.Draw = function(options) {
           geometry.setCoordinates(coordinates);
         } else {
           geometry = new ol.geom.Rectangle(coordinates);
+        }
+
+        return geometry;
+      };
+    } else if (this.type_ === ol.geom.GeometryType.ELLIPSE) {
+      // use LineString mode so the geometry always has an end point
+      this.mode_ = ol.interaction.Draw.Mode_.LINE_STRING;
+      this.minPoints_ = 3;
+      this.maxPoints_ = 3;
+      /**
+       * @param {ol.Coordinate|Array.<ol.Coordinate>|Array.<Array.<ol.Coordinate>>} coordinates
+       * @param {ol.geom.SimpleGeometry=} opt_geometry
+       * @return {ol.geom.SimpleGeometry}
+       */
+      geometryFunction = function(coordinates, opt_geometry) {
+
+        /*
+         * An ellipse is represented as a polygon in diamond shape.
+         *       +
+         *     /   \
+         *    /     \
+         *   /       \
+         *  /  a_vec  \
+         * 1-----•---->2
+         *  \         /|
+         *   \       / | intersection_vec
+         *    \     /  |
+         *     \   /   v
+         * ------+-------<3>--- (the third point may be anywhere on this line)
+         */
+
+        if (coordinates.length > 2) {
+          var first = coordinates[0];
+          var second = coordinates[1];
+          var third = coordinates[2];
+
+          // vector from first to second
+          var a_vec = [second[0] - first[0], second[1] - first[1]];
+          // Center point.
+          var center = [first[0] + a_vec[0] * 0.5, first[1] + a_vec[1] * 0.5];
+
+          if (a_vec[1] === 0) {
+              // catch the case where the first and second point are equal
+              coordinates = [[first, first, first, first]];
+          } else {
+            // perpendicular vector to a_vec
+            var b_vec = [-1 * a_vec[1], a_vec[0]];
+
+            // helper
+            var tmp = a_vec[0] / a_vec[1];
+            // compute the intersection parameter of the two lines
+            // going from second in b_vec direction
+            // and from third in a_vec direction
+            var x = (third[0] + tmp * (second[1] - third[1]) - second[0]) / (b_vec[0] - b_vec[1] * tmp);
+
+            // vector from second to the intersection point
+            var intersection_vec = [x * b_vec[0], x * b_vec[1]];
+
+            coordinates = [[
+              [first[0], first[1]],
+              [center[0] - intersection_vec[0], center[1] - intersection_vec[1]],
+              [second[0], second[1]],
+              [center[0] + intersection_vec[0], center[1] + intersection_vec[1]]
+            ]];
+          }
+        } else {
+          coordinates = [coordinates];
+        }
+
+        var geometry = opt_geometry;
+        if (geometry) {
+          geometry.setCoordinates(coordinates);
+        } else {
+          geometry = new ol.geom.Ellipse(coordinates);
         }
 
         return geometry;

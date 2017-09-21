@@ -4,7 +4,7 @@ goog.provide('ol.geom.GeometryType');
 /**
  * The geometry type. One of `'Point'`, `'LineString'`, `'LinearRing'`,
  * `'Polygon'`, `'MultiPoint'`, `'MultiLineString'`, `'MultiPolygon'`,
- * `'GeometryCollection'`, `'Circle'`, `'Rectangle'`.
+ * `'GeometryCollection'`, `'Circle'`, `'Rectangle'`, `'Ellipse'`.
  * @enum {string}
  */
 ol.geom.GeometryType = {
@@ -17,5 +17,6 @@ ol.geom.GeometryType = {
   MULTI_POLYGON: 'MultiPolygon',
   GEOMETRY_COLLECTION: 'GeometryCollection',
   CIRCLE: 'Circle',
-  RECTANGLE: 'Rectangle'
+  RECTANGLE: 'Rectangle',
+  ELLIPSE: 'Ellipse'
 };

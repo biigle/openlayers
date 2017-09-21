@@ -317,5 +317,6 @@ ol.renderer.vector.GEOMETRY_RENDERERS_ = {
   'MultiPolygon': ol.renderer.vector.renderMultiPolygonGeometry_,
   'GeometryCollection': ol.renderer.vector.renderGeometryCollectionGeometry_,
   'Circle': ol.renderer.vector.renderCircleGeometry_,
-  'Rectangle': ol.renderer.vector.renderPolygonGeometry_
+  'Rectangle': ol.renderer.vector.renderPolygonGeometry_,
+  'Ellipse': ol.renderer.vector.renderPolygonGeometry_
 };
