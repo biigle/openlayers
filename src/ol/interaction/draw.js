@@ -143,8 +143,6 @@ ol.interaction.Draw = function(options) {
         return circle;
       };
     } else if (this.type_ === ol.geom.GeometryType.RECTANGLE) {
-      // use LineString mode so the geometry always has an end point
-      this.mode_ = ol.interaction.Draw.Mode_.LINE_STRING;
       this.minPoints_ = 3;
       this.maxPoints_ = 3;
       /**
@@ -213,8 +211,6 @@ ol.interaction.Draw = function(options) {
         return geometry;
       };
     } else if (this.type_ === ol.geom.GeometryType.ELLIPSE) {
-      // use LineString mode so the geometry always has an end point
-      this.mode_ = ol.interaction.Draw.Mode_.LINE_STRING;
       this.minPoints_ = 3;
       this.maxPoints_ = 3;
       /**
@@ -683,7 +679,22 @@ ol.interaction.Draw.prototype.modifyDrawing_ = function(event) {
     sketchPointGeom.setCoordinates(coordinate);
   }
   var sketchLineGeom;
-  if (geometry instanceof ol.geom.Polygon &&
+  if (this.mode_ === ol.interaction.Draw.Mode_.ELLIPSE) {
+    if (!this.sketchLine_) {
+      this.sketchLine_ = new ol.Feature(new ol.geom.LineString(null));
+    }
+    sketchLineGeom = /** @type {ol.geom.LineString} */ (this.sketchLine_.getGeometry());
+    if (this.sketchCoords_.length < 3) {
+      sketchLineGeom.setCoordinates(this.sketchCoords_);
+    } else {
+      coordinates = geometry.getCoordinates()[0];
+      var center = [
+        (coordinates[0][0] + coordinates[2][0]) / 2,
+        (coordinates[0][1] + coordinates[2][1]) / 2
+      ];
+      sketchLineGeom.setCoordinates([coordinates[0], center, coordinates[3]]);
+    }
+  } else if (geometry instanceof ol.geom.Polygon &&
       this.mode_ !== ol.interaction.Draw.Mode_.POLYGON) {
     if (!this.sketchLine_) {
       this.sketchLine_ = new ol.Feature(new ol.geom.LineString(null));
@@ -710,7 +721,8 @@ ol.interaction.Draw.prototype.addToDrawing_ = function(event) {
   var geometry = /** @type {ol.geom.SimpleGeometry} */ (this.sketchFeature_.getGeometry());
   var done;
   var coordinates;
-  if (this.mode_ === ol.interaction.Draw.Mode_.LINE_STRING) {
+  if (this.mode_ === ol.interaction.Draw.Mode_.LINE_STRING ||
+    this.mode_ === ol.interaction.Draw.Mode_.ELLIPSE) {
     this.finishCoordinate_ = coordinate.slice();
     coordinates = this.sketchCoords_;
     if (coordinates.length >= this.maxPoints_) {
@@ -979,14 +991,17 @@ ol.interaction.Draw.getMode_ = function(type) {
       type === ol.geom.GeometryType.MULTI_POINT) {
     mode = ol.interaction.Draw.Mode_.POINT;
   } else if (type === ol.geom.GeometryType.LINE_STRING ||
-      type === ol.geom.GeometryType.MULTI_LINE_STRING) {
+      type === ol.geom.GeometryType.MULTI_LINE_STRING ||
+      // Use LineString mode for rectangle so the geometry always has an end point.
+      type === ol.geom.GeometryType.RECTANGLE) {
     mode = ol.interaction.Draw.Mode_.LINE_STRING;
   } else if (type === ol.geom.GeometryType.POLYGON ||
-      type === ol.geom.GeometryType.MULTI_POLYGON ||
-      type === ol.geom.GeometryType.RECTANGLE) {
+      type === ol.geom.GeometryType.MULTI_POLYGON) {
     mode = ol.interaction.Draw.Mode_.POLYGON;
   } else if (type === ol.geom.GeometryType.CIRCLE) {
     mode = ol.interaction.Draw.Mode_.CIRCLE;
+  } else if (type === ol.geom.GeometryType.ELLIPSE) {
+    mode = ol.interaction.Draw.Mode_.ELLIPSE;
   }
   return /** @type {!ol.interaction.Draw.Mode_} */ (mode);
 };
@@ -1002,7 +1017,8 @@ ol.interaction.Draw.Mode_ = {
   POINT: 'Point',
   LINE_STRING: 'LineString',
   POLYGON: 'Polygon',
-  CIRCLE: 'Circle'
+  CIRCLE: 'Circle',
+  ELLIPSE: 'Ellipse'
 };
 
 /**
