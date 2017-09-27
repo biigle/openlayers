@@ -301,6 +301,7 @@ ol.render.canvas.Replay.prototype.replay_ = function(
         break;
       case ol.render.canvas.Instruction.ELLIPSE:
         d = /** @type {number} */ (instruction[1]);
+        dd = /** @type {number} */ (instruction[2]);
         var x1 = pixelCoordinates[d];
         var y1 = pixelCoordinates[d + 1];
         var x2 = pixelCoordinates[d + 2];
@@ -310,22 +311,27 @@ ol.render.canvas.Replay.prototype.replay_ = function(
         var x4 = pixelCoordinates[d + 6];
         var y4 = pixelCoordinates[d + 7];
 
-        // Offset of the control points in direction of p1 to p3.
-        // x * .2761424 = x / 2 * .5522848
-        // where x / 2 is the vector from p1 to the center of the ellipse
-        // and .5522848 is kappa (https://stackoverflow.com/a/2173084/1796523).
-        var c1x = (x3 - x1) * .2761424;
-        var c1y = (y3 - y1) * .2761424;
+        // Don't attempt to draw if not all coordinates are supplied. This might happen
+        // if the ellipse is clipped by the view extent.
+        if ((dd - d) === 8) {
+          // Offset of the control points in direction of p1 to p3.
+          // x * .2761424 = x / 2 * .5522848
+          // where x / 2 is the vector from p1 to the center of the ellipse
+          // and .5522848 is kappa (https://stackoverflow.com/a/2173084/1796523).
+          var c1x = (x3 - x1) * .2761424;
+          var c1y = (y3 - y1) * .2761424;
 
-        // Offset of the control points in direction of p2 to p4.
-        var c2x = (x4 - x2) * .2761424;
-        var c2y = (y4 - y2) * .2761424;
+          // Offset of the control points in direction of p2 to p4.
+          var c2x = (x4 - x2) * .2761424;
+          var c2y = (y4 - y2) * .2761424;
 
-        context.moveTo(x1, y1);
-        context.bezierCurveTo(x1 - c2x, y1 - c2y, x2 - c1x, y2 - c1y, x2, y2);
-        context.bezierCurveTo(x2 + c1x, y2 + c1y, x3 - c2x, y3 - c2y, x3, y3);
-        context.bezierCurveTo(x3 + c2x, y3 + c2y, x4 + c1x, y4 + c1y, x4, y4);
-        context.bezierCurveTo(x4 - c1x, y4 - c1y, x1 + c2x, y1 + c2y, x1, y1);
+          context.moveTo(x1, y1);
+          context.bezierCurveTo(x1 - c2x, y1 - c2y, x2 - c1x, y2 - c1y, x2, y2);
+          context.bezierCurveTo(x2 + c1x, y2 + c1y, x3 - c2x, y3 - c2y, x3, y3);
+          context.bezierCurveTo(x3 + c2x, y3 + c2y, x4 + c1x, y4 + c1y, x4, y4);
+          context.bezierCurveTo(x4 - c1x, y4 - c1y, x1 + c2x, y1 + c2y, x1, y1);
+        }
+
         ++i;
         break;
       case ol.render.canvas.Instruction.CLOSE_PATH:

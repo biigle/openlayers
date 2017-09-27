@@ -193,12 +193,12 @@ ol.render.canvas.PolygonReplay.prototype.drawEllipse = function(ellipseGeometry,
   var flatCoordinates = ellipseGeometry.getFlatCoordinates();
   var stride = ellipseGeometry.getStride();
   var myBegin = this.coordinates.length;
-  this.appendFlatCoordinates(
-      flatCoordinates, 0, flatCoordinates.length, stride, false, false);
+  var myEnd = this.appendFlatCoordinates(
+      flatCoordinates, 0, flatCoordinates.length, stride, true, false);
   var beginPathInstruction = [ol.render.canvas.Instruction.BEGIN_PATH];
-  var circleInstruction = [ol.render.canvas.Instruction.ELLIPSE, myBegin];
-  this.instructions.push(beginPathInstruction, circleInstruction);
-  this.hitDetectionInstructions.push(beginPathInstruction, circleInstruction);
+  var ellipseInstruction = [ol.render.canvas.Instruction.ELLIPSE, myBegin, myEnd];
+  this.instructions.push(beginPathInstruction, ellipseInstruction);
+  this.hitDetectionInstructions.push(beginPathInstruction, ellipseInstruction);
   var fillInstruction = [ol.render.canvas.Instruction.FILL];
   this.hitDetectionInstructions.push(fillInstruction);
   if (state.fillStyle !== undefined) {
