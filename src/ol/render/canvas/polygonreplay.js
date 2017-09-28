@@ -191,10 +191,10 @@ ol.render.canvas.PolygonReplay.prototype.drawEllipse = function(ellipseGeometry,
     ]);
   }
   var flatCoordinates = ellipseGeometry.getFlatCoordinates();
-  var stride = ellipseGeometry.getStride();
   var myBegin = this.coordinates.length;
-  var myEnd = this.appendFlatCoordinates(
-      flatCoordinates, 0, flatCoordinates.length, stride, true, false);
+  // Always use all coordinates of an ellipse and don't clip them.
+  Array.prototype.push.apply(this.coordinates, flatCoordinates)
+  var myEnd = this.coordinates.length;
   var beginPathInstruction = [ol.render.canvas.Instruction.BEGIN_PATH];
   var ellipseInstruction = [ol.render.canvas.Instruction.ELLIPSE, myBegin, myEnd];
   this.instructions.push(beginPathInstruction, ellipseInstruction);
