@@ -1,6 +1,5 @@
-goog.provide('ol.test.render.webgl.TextReplay');
-
 goog.require('ol.dom');
+goog.require('ol.geom.Point');
 goog.require('ol.render.webgl.TextReplay');
 goog.require('ol.style.Fill');
 goog.require('ol.style.Stroke');
@@ -127,19 +126,19 @@ describe('ol.render.webgl.TextReplay', function() {
       var point;
 
       point = [1000, 2000];
-      replay.drawText(point, 0, 2, 2, null, null);
+      replay.drawText(new ol.geom.Point(point), null);
       expect(replay.vertices).to.have.length(256);
       expect(replay.indices).to.have.length(48);
 
       point = [2000, 3000];
-      replay.drawText(point, 0, 2, 2, null, null);
+      replay.drawText(new ol.geom.Point(point), null);
       expect(replay.vertices).to.have.length(512);
       expect(replay.indices).to.have.length(96);
     });
 
     it('sets part of its state during drawing', function() {
       var point = [1000, 2000];
-      replay.drawText(point, 0, 2, 2, null, null);
+      replay.drawText(new ol.geom.Point(point), null);
 
       var height = replay.currAtlas_.height;
       var widths = replay.currAtlas_.width;
@@ -154,8 +153,8 @@ describe('ol.render.webgl.TextReplay', function() {
       expect(replay.originY).to.be(charInfo.offsetY);
       expect(replay.imageHeight).to.be(charInfo.image.height);
       expect(replay.imageWidth).to.be(charInfo.image.width);
-      expect(replay.anchorX).to.be(-widthX + 10);
-      expect(replay.anchorY).to.be(10);
+      expect(replay.anchorX).to.be(-widthX - 10);
+      expect(replay.anchorY).to.be(-10);
     });
 
     it('does not draw if text is empty', function() {
@@ -163,7 +162,7 @@ describe('ol.render.webgl.TextReplay', function() {
       var point;
 
       point = [1000, 2000];
-      replay.drawText(point, 0, 2, 2, null, null);
+      replay.drawText(new ol.geom.Point(point), null);
       expect(replay.vertices).to.have.length(0);
       expect(replay.indices).to.have.length(0);
     });
