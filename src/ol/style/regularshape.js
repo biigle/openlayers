@@ -62,7 +62,7 @@ ol.style.RegularShape = function(options) {
    * @type {number}
    */
   this.radius_ = /** @type {number} */ (options.radius !== undefined ?
-      options.radius : options.radius1);
+    options.radius : options.radius1);
 
   /**
    * @private
@@ -118,13 +118,13 @@ ol.style.RegularShape = function(options) {
    * @type {boolean}
    */
   var snapToPixel = options.snapToPixel !== undefined ?
-      options.snapToPixel : true;
+    options.snapToPixel : true;
 
   /**
    * @type {boolean}
    */
   var rotateWithView = options.rotateWithView !== undefined ?
-      options.rotateWithView : false;
+    options.rotateWithView : false;
 
   ol.style.Image.call(this, {
     opacity: 1,
@@ -317,6 +317,7 @@ ol.style.RegularShape.prototype.render_ = function(atlasManager) {
   var lineJoin = '';
   var miterLimit = 0;
   var lineDash = null;
+  var lineDashOffset = 0;
   var strokeStyle;
   var strokeWidth = 0;
 
@@ -331,8 +332,10 @@ ol.style.RegularShape.prototype.render_ = function(atlasManager) {
       strokeWidth = ol.render.canvas.defaultLineWidth;
     }
     lineDash = this.stroke_.getLineDash();
+    lineDashOffset = this.stroke_.getLineDashOffset();
     if (!ol.has.CANVAS_LINE_DASH) {
       lineDash = null;
+      lineDashOffset = 0;
     }
     lineJoin = this.stroke_.getLineJoin();
     if (lineJoin === undefined) {
@@ -357,6 +360,7 @@ ol.style.RegularShape.prototype.render_ = function(atlasManager) {
     size: size,
     lineCap: lineCap,
     lineDash: lineDash,
+    lineDashOffset: lineDashOffset,
     lineJoin: lineJoin,
     miterLimit: miterLimit
   };
@@ -442,7 +446,7 @@ ol.style.RegularShape.prototype.draw_ = function(renderOptions, context, x, y) {
       angle0 = i * 2 * Math.PI / points - Math.PI / 2 + this.angle_;
       radiusC = i % 2 === 0 ? this.radius_ : radius2;
       context.lineTo(renderOptions.size / 2 + radiusC * Math.cos(angle0),
-                     renderOptions.size / 2 + radiusC * Math.sin(angle0));
+          renderOptions.size / 2 + radiusC * Math.sin(angle0));
     }
   }
 
@@ -460,6 +464,7 @@ ol.style.RegularShape.prototype.draw_ = function(renderOptions, context, x, y) {
     context.lineWidth = renderOptions.strokeWidth;
     if (renderOptions.lineDash) {
       context.setLineDash(renderOptions.lineDash);
+      context.lineDashOffset = renderOptions.lineDashOffset;
     }
     context.lineCap = renderOptions.lineCap;
     context.lineJoin = renderOptions.lineJoin;
@@ -522,7 +527,7 @@ ol.style.RegularShape.prototype.drawHitDetectionCanvas_ = function(renderOptions
       angle0 = i * 2 * Math.PI / points - Math.PI / 2 + this.angle_;
       radiusC = i % 2 === 0 ? this.radius_ : radius2;
       context.lineTo(renderOptions.size / 2 + radiusC * Math.cos(angle0),
-                     renderOptions.size / 2 + radiusC * Math.sin(angle0));
+          renderOptions.size / 2 + radiusC * Math.sin(angle0));
     }
   }
 
@@ -533,6 +538,7 @@ ol.style.RegularShape.prototype.drawHitDetectionCanvas_ = function(renderOptions
     context.lineWidth = renderOptions.strokeWidth;
     if (renderOptions.lineDash) {
       context.setLineDash(renderOptions.lineDash);
+      context.lineDashOffset = renderOptions.lineDashOffset;
     }
     context.stroke();
   }
@@ -545,9 +551,9 @@ ol.style.RegularShape.prototype.drawHitDetectionCanvas_ = function(renderOptions
  */
 ol.style.RegularShape.prototype.getChecksum = function() {
   var strokeChecksum = this.stroke_ ?
-      this.stroke_.getChecksum() : '-';
+    this.stroke_.getChecksum() : '-';
   var fillChecksum = this.fill_ ?
-      this.fill_.getChecksum() : '-';
+    this.fill_.getChecksum() : '-';
 
   var recalculate = !this.checksums_ ||
       (strokeChecksum != this.checksums_[1] ||

@@ -3,15 +3,16 @@
 goog.provide('ol.Geolocation');
 
 goog.require('ol');
-goog.require('ol.Object');
 goog.require('ol.GeolocationProperty');
+goog.require('ol.Object');
+goog.require('ol.Sphere');
 goog.require('ol.events');
 goog.require('ol.events.EventType');
 goog.require('ol.geom.Polygon');
 goog.require('ol.has');
 goog.require('ol.math');
 goog.require('ol.proj');
-goog.require('ol.sphere.WGS84');
+goog.require('ol.proj.EPSG4326');
 
 
 /**
@@ -58,6 +59,12 @@ ol.Geolocation = function(opt_options) {
    * @type {ol.TransformFunction}
    */
   this.transform_ = ol.proj.identityTransform;
+
+  /**
+   * @private
+   * @type {ol.Sphere}
+   */
+  this.sphere_ = new ol.Sphere(ol.proj.EPSG4326.RADIUS);
 
   /**
    * @private
@@ -140,9 +147,9 @@ ol.Geolocation.prototype.positionChange_ = function(position) {
       coords.altitude === null ? undefined : coords.altitude);
   this.set(ol.GeolocationProperty.ALTITUDE_ACCURACY,
       coords.altitudeAccuracy === null ?
-      undefined : coords.altitudeAccuracy);
+        undefined : coords.altitudeAccuracy);
   this.set(ol.GeolocationProperty.HEADING, coords.heading === null ?
-      undefined : ol.math.toRadians(coords.heading));
+    undefined : ol.math.toRadians(coords.heading));
   if (!this.position_) {
     this.position_ = [coords.longitude, coords.latitude];
   } else {
@@ -154,7 +161,7 @@ ol.Geolocation.prototype.positionChange_ = function(position) {
   this.set(ol.GeolocationProperty.SPEED,
       coords.speed === null ? undefined : coords.speed);
   var geometry = ol.geom.Polygon.circular(
-      ol.sphere.WGS84, this.position_, coords.accuracy);
+      this.sphere_, this.position_, coords.accuracy);
   geometry.applyTransform(this.transform_);
   this.set(ol.GeolocationProperty.ACCURACY_GEOMETRY, geometry);
   this.changed();
@@ -186,7 +193,7 @@ ol.Geolocation.prototype.positionError_ = function(error) {
  */
 ol.Geolocation.prototype.getAccuracy = function() {
   return /** @type {number|undefined} */ (
-      this.get(ol.GeolocationProperty.ACCURACY));
+    this.get(ol.GeolocationProperty.ACCURACY));
 };
 
 
@@ -198,7 +205,7 @@ ol.Geolocation.prototype.getAccuracy = function() {
  */
 ol.Geolocation.prototype.getAccuracyGeometry = function() {
   return /** @type {?ol.geom.Polygon} */ (
-      this.get(ol.GeolocationProperty.ACCURACY_GEOMETRY) || null);
+    this.get(ol.GeolocationProperty.ACCURACY_GEOMETRY) || null);
 };
 
 
@@ -211,7 +218,7 @@ ol.Geolocation.prototype.getAccuracyGeometry = function() {
  */
 ol.Geolocation.prototype.getAltitude = function() {
   return /** @type {number|undefined} */ (
-      this.get(ol.GeolocationProperty.ALTITUDE));
+    this.get(ol.GeolocationProperty.ALTITUDE));
 };
 
 
@@ -224,7 +231,7 @@ ol.Geolocation.prototype.getAltitude = function() {
  */
 ol.Geolocation.prototype.getAltitudeAccuracy = function() {
   return /** @type {number|undefined} */ (
-      this.get(ol.GeolocationProperty.ALTITUDE_ACCURACY));
+    this.get(ol.GeolocationProperty.ALTITUDE_ACCURACY));
 };
 
 
@@ -236,7 +243,7 @@ ol.Geolocation.prototype.getAltitudeAccuracy = function() {
  */
 ol.Geolocation.prototype.getHeading = function() {
   return /** @type {number|undefined} */ (
-      this.get(ol.GeolocationProperty.HEADING));
+    this.get(ol.GeolocationProperty.HEADING));
 };
 
 
@@ -249,7 +256,7 @@ ol.Geolocation.prototype.getHeading = function() {
  */
 ol.Geolocation.prototype.getPosition = function() {
   return /** @type {ol.Coordinate|undefined} */ (
-      this.get(ol.GeolocationProperty.POSITION));
+    this.get(ol.GeolocationProperty.POSITION));
 };
 
 
@@ -262,7 +269,7 @@ ol.Geolocation.prototype.getPosition = function() {
  */
 ol.Geolocation.prototype.getProjection = function() {
   return /** @type {ol.proj.Projection|undefined} */ (
-      this.get(ol.GeolocationProperty.PROJECTION));
+    this.get(ol.GeolocationProperty.PROJECTION));
 };
 
 
@@ -275,7 +282,7 @@ ol.Geolocation.prototype.getProjection = function() {
  */
 ol.Geolocation.prototype.getSpeed = function() {
   return /** @type {number|undefined} */ (
-      this.get(ol.GeolocationProperty.SPEED));
+    this.get(ol.GeolocationProperty.SPEED));
 };
 
 
@@ -287,7 +294,7 @@ ol.Geolocation.prototype.getSpeed = function() {
  */
 ol.Geolocation.prototype.getTracking = function() {
   return /** @type {boolean} */ (
-      this.get(ol.GeolocationProperty.TRACKING));
+    this.get(ol.GeolocationProperty.TRACKING));
 };
 
 
@@ -302,7 +309,7 @@ ol.Geolocation.prototype.getTracking = function() {
  */
 ol.Geolocation.prototype.getTrackingOptions = function() {
   return /** @type {GeolocationPositionOptions|undefined} */ (
-      this.get(ol.GeolocationProperty.TRACKING_OPTIONS));
+    this.get(ol.GeolocationProperty.TRACKING_OPTIONS));
 };
 
 

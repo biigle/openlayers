@@ -34,20 +34,26 @@ ol.interaction.DragAndDrop = function(opt_options) {
    * @type {Array.<function(new: ol.format.Feature)>}
    */
   this.formatConstructors_ = options.formatConstructors ?
-      options.formatConstructors : [];
+    options.formatConstructors : [];
 
   /**
    * @private
    * @type {ol.proj.Projection}
    */
   this.projection_ = options.projection ?
-      ol.proj.get(options.projection) : null;
+    ol.proj.get(options.projection) : null;
 
   /**
    * @private
    * @type {Array.<ol.EventsKey>}
    */
   this.dropListenKeys_ = null;
+
+  /**
+   * @private
+   * @type {ol.source.Vector}
+   */
+  this.source_ = options.source || null;
 
   /**
    * @private
@@ -121,6 +127,10 @@ ol.interaction.DragAndDrop.prototype.handleResult_ = function(file, event) {
     if (features && features.length > 0) {
       break;
     }
+  }
+  if (this.source_) {
+    this.source_.clear();
+    this.source_.addFeatures(features);
   }
   this.dispatchEvent(
       new ol.interaction.DragAndDrop.Event(

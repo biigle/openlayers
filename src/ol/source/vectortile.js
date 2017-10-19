@@ -27,20 +27,29 @@ goog.require('ol.source.UrlTile');
  * @api
  */
 ol.source.VectorTile = function(options) {
+  var projection = options.projection || 'EPSG:3857';
+
+  var extent = options.extent || ol.tilegrid.extentFromProjection(projection);
+
+  var tileGrid = options.tileGrid || ol.tilegrid.createXYZ({
+    extent: extent,
+    maxZoom: options.maxZoom || 22,
+    minZoom: options.minZoom,
+    tileSize: options.tileSize || 512
+  });
 
   ol.source.UrlTile.call(this, {
     attributions: options.attributions,
     cacheSize: options.cacheSize !== undefined ? options.cacheSize : 128,
-    extent: options.extent,
+    extent: extent,
     logo: options.logo,
     opaque: false,
-    projection: options.projection,
+    projection: projection,
     state: options.state,
-    tileGrid: options.tileGrid,
+    tileGrid: tileGrid,
     tileLoadFunction: options.tileLoadFunction ?
-        options.tileLoadFunction : ol.VectorImageTile.defaultLoadFunction,
+      options.tileLoadFunction : ol.VectorImageTile.defaultLoadFunction,
     tileUrlFunction: options.tileUrlFunction,
-    tilePixelRatio: options.tilePixelRatio,
     url: options.url,
     urls: options.urls,
     wrapX: options.wrapX === undefined ? true : options.wrapX
@@ -105,7 +114,7 @@ ol.source.VectorTile.prototype.getTile = function(z, x, y, pixelRatio, projectio
     var urlTileCoord = this.getTileCoordForTileUrlFunction(
         tileCoord, projection);
     var tileUrl = urlTileCoord ?
-        this.tileUrlFunction(urlTileCoord, pixelRatio, projection) : undefined;
+      this.tileUrlFunction(urlTileCoord, pixelRatio, projection) : undefined;
     var tile = new ol.VectorImageTile(
         tileCoord,
         tileUrl !== undefined ? ol.TileState.IDLE : ol.TileState.EMPTY,
@@ -141,10 +150,8 @@ ol.source.VectorTile.prototype.getTileGridForProjection = function(projection) {
 /**
  * @inheritDoc
  */
-ol.source.VectorTile.prototype.getTilePixelRatio = function(opt_pixelRatio) {
-  return opt_pixelRatio == undefined ?
-      ol.source.UrlTile.prototype.getTilePixelRatio.call(this, opt_pixelRatio) :
-      opt_pixelRatio;
+ol.source.VectorTile.prototype.getTilePixelRatio = function(pixelRatio) {
+  return pixelRatio;
 };
 
 

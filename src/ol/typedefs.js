@@ -79,6 +79,7 @@ ol.CanvasFunctionType;
 /**
  * @typedef {{lineCap: string,
  *            lineDash: Array.<number>,
+ *            lineDashOffset: number,
  *            lineJoin: string,
  *            lineWidth: number,
  *            miterLimit: number,
@@ -626,6 +627,17 @@ ol.StyleGeometryFunction;
 
 
 /**
+ * Custom renderer function. Takes two arguments:
+ *
+ * 1. The pixel coordinates of the geometry in GeoJSON notation.
+ * 2. The {@link olx.render.State} of the layer renderer.
+ *
+ * @typedef {function((ol.Coordinate|Array<ol.Coordinate>|Array.<Array.<ol.Coordinate>>),olx.render.State)}
+ */
+ol.StyleRenderFunction;
+
+
+/**
  * @typedef {{opacity: number,
  *            rotateWithView: boolean,
  *            rotation: number,
@@ -721,6 +733,14 @@ ol.ViewAnimation;
  *            buffer: WebGLBuffer}}
  */
 ol.WebglBufferCacheEntry;
+
+
+/**
+ * @typedef {{atlas: ol.style.AtlasManager,
+ *            width: Object.<string, number>,
+ *            height: number}}
+ */
+ol.WebglGlyphAtlas;
 
 
 /**

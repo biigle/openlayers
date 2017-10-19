@@ -84,7 +84,7 @@ ol.source.Vector = function(opt_options) {
    * @type {ol.LoadingStrategy}
    */
   this.strategy_ = options.strategy !== undefined ? options.strategy :
-      ol.loadingstrategy.all;
+    ol.loadingstrategy.all;
 
   var useSpatialIndex =
       options.useSpatialIndex !== undefined ? options.useSpatialIndex : true;
@@ -614,7 +614,7 @@ ol.source.Vector.prototype.getClosestFeatureToCoordinate = function(coordinate, 
  * `useSpatialIndex` set to `false`.
  * @param {ol.Extent=} opt_extent Destination extent. If provided, no new extent
  *     will be created. Instead, that extent's coordinates will be overwritten.
- * @return {!ol.Extent} Extent.
+ * @return {ol.Extent} Extent.
  * @api
  */
 ol.source.Vector.prototype.getExtent = function(opt_extent) {

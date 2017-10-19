@@ -13,5 +13,6 @@ ol.render.replay.ORDER = [
   ol.render.ReplayType.ELLIPSE,
   ol.render.ReplayType.LINE_STRING,
   ol.render.ReplayType.IMAGE,
-  ol.render.ReplayType.TEXT
+  ol.render.ReplayType.TEXT,
+  ol.render.ReplayType.DEFAULT
 ];
