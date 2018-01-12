@@ -31,8 +31,7 @@ ol.source.Canvas = function(options) {
    * @private
    * @type {ol.ImageCanvas}
    */
-  this.canvas_ = new ol.ImageCanvas(canvasExtent, undefined, 1,
-        this.getAttributions(), options.canvas);
+  this.canvas_ = new ol.ImageCanvas(canvasExtent, undefined, 1, options.canvas);
 
   /**
    * @private

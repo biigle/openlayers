@@ -23,8 +23,8 @@ goog.require('ol.transform');
 
 /**
  * @classdesc
- * A source that transforms data from any number of input sources using an array
- * of {@link ol.RasterOperation} functions to transform input pixel values into
+ * A source that transforms data from any number of input sources using an
+ * {@link ol.RasterOperation} function to transform input pixel values into
  * output pixel values.
  *
  * @constructor
@@ -299,8 +299,7 @@ ol.source.Raster.prototype.onWorkerComplete_ = function(frameState, err, output,
     var width = Math.round(ol.extent.getWidth(extent) / resolution);
     var height = Math.round(ol.extent.getHeight(extent) / resolution);
     context = ol.dom.createCanvasContext2D(width, height);
-    this.renderedImageCanvas_ = new ol.ImageCanvas(
-        extent, resolution, 1, this.getAttributions(), context.canvas);
+    this.renderedImageCanvas_ = new ol.ImageCanvas(extent, resolution, 1, context.canvas);
   }
   context.putImageData(output, 0, 0);
 
