@@ -634,6 +634,41 @@ class CanvasReplay extends VectorContext {
           context.arc(x1, y1, r, 0, 2 * Math.PI, true);
           ++i;
           break;
+        case CanvasInstruction.ELLIPSE:
+          d = /** @type {number} */ (instruction[1]);
+          dd = /** @type {number} */ (instruction[2]);
+          const ex1 = pixelCoordinates[d];
+          const ey1 = pixelCoordinates[d + 1];
+          const ex2 = pixelCoordinates[d + 2];
+          const ey2 = pixelCoordinates[d + 3];
+          const ex3 = pixelCoordinates[d + 4];
+          const ey3 = pixelCoordinates[d + 5];
+          const ex4 = pixelCoordinates[d + 6];
+          const ey4 = pixelCoordinates[d + 7];
+
+          // Don't attempt to draw if not all coordinates are supplied. This might happen
+          // if the ellipse is clipped by the view extent.
+          if ((dd - d) === 8) {
+            // Offset of the control points in direction of p1 to p3.
+            // x * .2761424 = x / 2 * .5522848
+            // where x / 2 is the vector from p1 to the center of the ellipse
+            // and .5522848 is kappa (https://stackoverflow.com/a/2173084/1796523).
+            const c1x = (ex3 - ex1) * .2761424;
+            const c1y = (ey3 - ey1) * .2761424;
+
+            // Offset of the control points in direction of p2 to p4.
+            const c2x = (ex4 - ex2) * .2761424;
+            const c2y = (ey4 - ey2) * .2761424;
+
+            context.moveTo(ex1, ey1);
+            context.bezierCurveTo(ex1 - c2x, ey1 - c2y, ex2 - c1x, ey2 - c1y, ex2, ey2);
+            context.bezierCurveTo(ex2 + c1x, ey2 + c1y, ex3 - c2x, ey3 - c2y, ex3, ey3);
+            context.bezierCurveTo(ex3 + c2x, ey3 + c2y, ex4 + c1x, ey4 + c1y, ex4, ey4);
+            context.bezierCurveTo(ex4 - c1x, ey4 - c1y, ex1 + c2x, ey1 + c2y, ex1, ey1);
+          }
+
+          ++i;
+          break;
         case CanvasInstruction.CLOSE_PATH:
           context.closePath();
           ++i;

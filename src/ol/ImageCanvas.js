@@ -3,6 +3,7 @@
  */
 import ImageBase from './ImageBase.js';
 import ImageState from './ImageState.js';
+import {getHeight} from './extent.js';
 
 
 /**
@@ -19,7 +20,7 @@ class ImageCanvas extends ImageBase {
 
   /**
    * @param {import("./extent.js").Extent} extent Extent.
-   * @param {number} resolution Resolution.
+   * @param {number|undefined} resolution Resolution.
    * @param {number} pixelRatio Pixel ratio.
    * @param {HTMLCanvasElement} canvas Canvas.
    * @param {Loader=} opt_loader Optional loader function to
@@ -28,6 +29,11 @@ class ImageCanvas extends ImageBase {
   constructor(extent, resolution, pixelRatio, canvas, opt_loader) {
 
     const state = opt_loader !== undefined ? ImageState.IDLE : ImageState.LOADED;
+
+
+    if (resolution === undefined) {
+        resolution = getHeight(extent) / canvas.height;
+    }
 
     super(extent, resolution, pixelRatio, state);
 

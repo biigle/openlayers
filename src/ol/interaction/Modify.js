@@ -284,6 +284,8 @@ class Modify extends PointerInteraction {
       'MultiPoint': this.writeMultiPointGeometry_,
       'MultiLineString': this.writeMultiLineStringGeometry_,
       'MultiPolygon': this.writeMultiPolygonGeometry_,
+      'Rectangle': this.writePolygonGeometry_,
+      'Ellipse': this.writePolygonGeometry_,
       'Circle': this.writeCircleGeometry_,
       'GeometryCollection': this.writeGeometryCollectionGeometry_
     };
@@ -742,6 +744,84 @@ class Modify extends PointerInteraction {
           coordinates[depth[1]][depth[0]][segmentData.index + index] = vertex;
           segment[index] = vertex;
           break;
+        case GeometryType.RECTANGLE:
+          coordinates = geometry.getCoordinates();
+          var coords = coordinates[depth[0]];
+          // vertex across from the dragged vertex
+          var across = coords[(segmentData.index + index + 2) % 4];
+          // vector from across to vertex
+          var acrossToVertex = [vertex[0] - across[0], vertex[1] - across[1]];
+
+          // vertex left from dragged vertex
+          var left = coords[(segmentData.index + index + 1) % 4];
+          // vector from across to left
+          var acrossToLeft = [left[0] - across[0], left[1] - across[1]];
+          // normalize vector
+          var length = Math.sqrt(acrossToLeft[0] * acrossToLeft[0] + acrossToLeft[1] * acrossToLeft[1]);
+          acrossToLeft[0] = acrossToLeft[0] / length;
+          acrossToLeft[1] = acrossToLeft[1] / length;
+          // move left vertex to position of orthogonal projection from the dragged
+          // vertex on the acrossToLeft vector
+          var dot = acrossToVertex[0] * acrossToLeft[0] + acrossToVertex[1] * acrossToLeft[1];
+          coords[(segmentData.index + index + 1) % 4] = [
+            across[0] + dot * acrossToLeft[0],
+            across[1] + dot * acrossToLeft[1]
+          ];
+
+          // vertex right of dragged vertex
+          var right = coords[(segmentData.index + index + 3) % 4];
+          // vector from across to right
+          var acrossToRight = [right[0] - across[0], right[1] - across[1]];
+          // normalize vector
+          length = Math.sqrt(acrossToRight[0] * acrossToRight[0] + acrossToRight[1] * acrossToRight[1]);
+          acrossToRight[0] = acrossToRight[0] / length;
+          acrossToRight[1] = acrossToRight[1] / length;
+          // move right vertex to position of orthogonal projection from the dragged
+          // vertex on the acrossToRight vector
+          dot = acrossToVertex[0] * acrossToRight[0] + acrossToVertex[1] * acrossToRight[1];
+          coords[(segmentData.index + index + 3) % 4] = [
+            across[0] + dot * acrossToRight[0],
+            across[1] + dot * acrossToRight[1]
+          ];
+
+          // update position of dragged vertex
+          coords[segmentData.index + index] = vertex;
+          break;
+        case GeometryType.ELLIPSE:
+          coordinates = geometry.getCoordinates();
+          var coords = coordinates[depth[0]];
+          // Vertex left from the dragged vertex.
+          var left = coords[(segmentData.index + index + 1) % 4];
+          // Vertex across from the dragged vertex.
+          var across = coords[(segmentData.index + index + 2) % 4];
+          // Vertex right from the dragged vertex.
+          var right = coords[(segmentData.index + index + 3) % 4];
+
+          // Half the distance between left and right.
+          var radius = Math.sqrt(Math.pow(left[0] - right[0], 2) + Math.pow(left[1] - right[1], 2)) / 2;
+          // Vector from across to dragged.
+          var acrossToDragged = [vertex[0] - across[0], vertex[1] - across[1]];
+          // Vector perpendicular to acrossToDragged.
+          var pAcrossToDragged = [-1 * acrossToDragged[1], acrossToDragged[0]];
+          // Bring vector to unit length.
+          var length = Math.sqrt(pAcrossToDragged[0] * pAcrossToDragged[0] + pAcrossToDragged[1] * pAcrossToDragged[1]);
+          pAcrossToDragged[0] = pAcrossToDragged[0] / length;
+          pAcrossToDragged[1] = pAcrossToDragged[1] / length;
+
+          // New center point.
+          var center = [across[0] + acrossToDragged[0] / 2, across[1] + acrossToDragged[1] / 2]
+
+          coords[(segmentData.index + index + 1) % 4] = [
+            center[0] + pAcrossToDragged[0] * radius,
+            center[1] + pAcrossToDragged[1] * radius,
+          ];
+          coords[(segmentData.index + index + 3) % 4] = [
+            center[0] - pAcrossToDragged[0] * radius,
+            center[1] - pAcrossToDragged[1] * radius,
+          ];
+          // Update position of dragged vertex.
+          coords[segmentData.index + index] = vertex;
+          break;
         case GeometryType.CIRCLE:
           segment[0] = segment[1] = vertex;
           if (segmentData.index === CIRCLE_CENTER_INDEX) {
@@ -845,7 +925,11 @@ class Modify extends PointerInteraction {
     for (let i = this.dragSegments_.length - 1; i >= 0; --i) {
       const segmentData = this.dragSegments_[i][0];
       const geometry = segmentData.geometry;
-      if (geometry.getType() === GeometryType.CIRCLE) {
+      if (geometry.getType() === GeometryType.RECTANGLE || geometry.getType() === GeometryType.ELLIPSE) {
+        // Refresh rBush with all vertices of the feature.
+        this.features_.remove(segmentData.feature);
+        this.features_.push(segmentData.feature);
+      } else if (geometry.getType() === GeometryType.CIRCLE) {
         // Update a circle object in the R* bush:
         const coordinates = geometry.getCenter();
         const centerSegmentData = segmentData.featureSegments[0];
@@ -1223,6 +1307,8 @@ function closestOnSegmentData(pointCoordinates, segmentData) {
 
   if (geometry.getType() === GeometryType.CIRCLE &&
   segmentData.index === CIRCLE_CIRCUMFERENCE_INDEX) {
+    return geometry.getClosestPoint(pointCoordinates);
+  } else if (geometry.getType() === GeometryType.ELLIPSE || geometry.getType() === GeometryType.RECTANGLE) {
     return geometry.getClosestPoint(pointCoordinates);
   }
   return closestOnSegment(pointCoordinates, segmentData.segment);

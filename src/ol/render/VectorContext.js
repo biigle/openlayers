@@ -39,6 +39,12 @@ class VectorContext {
   drawCircle(circleGeometry, feature) {}
 
   /**
+   * @param {import("../geom/Ellipse.js").default} ellipseGeometry Ellipse geometry.
+   * @param {import("../Feature.js").default} feature Feature.
+   */
+  drawEllipse(ellipseGeometry, feature) {}
+
+  /**
    * @param {import("../Feature.js").default} feature Feature.
    * @param {import("../style/Style.js").default} style Style.
    */

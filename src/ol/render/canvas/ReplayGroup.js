@@ -27,7 +27,8 @@ const BATCH_CONSTRUCTORS = {
   'Image': CanvasImageReplay,
   'LineString': CanvasLineStringReplay,
   'Polygon': CanvasPolygonReplay,
-  'Text': CanvasTextReplay
+  'Text': CanvasTextReplay,
+  'Ellipse': CanvasPolygonReplay,
 };
 
 

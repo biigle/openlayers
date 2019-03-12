@@ -11,6 +11,7 @@ import ReplayType from './ReplayType.js';
 export const ORDER = [
   ReplayType.POLYGON,
   ReplayType.CIRCLE,
+  ReplayType.ELLIPSE,
   ReplayType.LINE_STRING,
   ReplayType.IMAGE,
   ReplayType.TEXT,

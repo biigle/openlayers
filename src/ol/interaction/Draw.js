@@ -26,6 +26,8 @@ import InteractionProperty from './Property.js';
 import VectorLayer from '../layer/Vector.js';
 import VectorSource from '../source/Vector.js';
 import {createEditingStyle} from '../style/Style.js';
+import Rectangle from '../geom/Rectangle.js';
+import Ellipse from '../geom/Ellipse.js';
 
 
 /**
@@ -124,7 +126,8 @@ const Mode = {
   POINT: 'Point',
   LINE_STRING: 'LineString',
   POLYGON: 'Polygon',
-  CIRCLE: 'Circle'
+  CIRCLE: 'Circle',
+  ELLIPSE: 'Ellipse'
 };
 
 
@@ -307,6 +310,145 @@ class Draw extends PointerInteraction {
             coordinates[0], coordinates[1]);
           circle.setCenterAndRadius(coordinates[0], Math.sqrt(squaredLength));
           return circle;
+        };
+      } else if (this.type_ === GeometryType.RECTANGLE) {
+        this.minPoints_ = 3;
+        this.maxPoints_ = 3;
+        /**
+         * @param {!LineCoordType} coordinates The coordinates.
+         * @param {import("../geom/SimpleGeometry.js").default=} opt_geometry Optional geometry.
+         * @return {import("../geom/SimpleGeometry.js").default} A geometry.
+         */
+        geometryFunction = function(coordinates, opt_geometry) {
+
+          /*
+           *   a_vec
+           * -------->
+           * +-------+
+           * |       |
+           * |       |
+           * 1       2
+           * |       |   | intersection_vec
+           * |       |   v
+           * +-------+------<3>-- (the third point may be anywhere on this line)
+           */
+
+          if (coordinates.length > 2) {
+            var first = coordinates[0];
+            var second = coordinates[1];
+            var third = coordinates[2];
+
+            // vector from first to second
+            var a_vec = [second[0] - first[0], second[1] - first[1]];
+
+            if (a_vec[1] === 0) {
+                // catch the case where the first and second point are equal
+                coordinates = [[first, first, first, first]];
+            } else {
+              // perpendicular vector to a_vec
+              var b_vec = [-1 * a_vec[1], a_vec[0]];
+
+              // helper
+              var tmp = a_vec[0] / a_vec[1];
+              // compute the intersection parameter of the two lines
+              // going from second in b_vec direction
+              // and from third in a_vec direction
+              var x = (third[0] + tmp * (second[1] - third[1]) - second[0]) / (b_vec[0] - b_vec[1] * tmp);
+
+              // vector from second to the intersection point
+              var intersection_vec = [x * b_vec[0], x * b_vec[1]];
+
+              coordinates = [[
+                [first[0] - intersection_vec[0], first[1] - intersection_vec[1]],
+                [second[0] - intersection_vec[0], second[1] - intersection_vec[1]],
+                [second[0] + intersection_vec[0], second[1] + intersection_vec[1]],
+                [first[0] + intersection_vec[0], first[1] + intersection_vec[1]]
+              ]];
+            }
+          } else {
+            coordinates = [coordinates];
+          }
+
+          var geometry = opt_geometry;
+          if (geometry) {
+            geometry.setCoordinates(coordinates);
+          } else {
+            geometry = new Rectangle(coordinates);
+          }
+
+          return geometry;
+        };
+      } else if (this.type_ === GeometryType.ELLIPSE) {
+        this.minPoints_ = 3;
+        this.maxPoints_ = 3;
+        /**
+         * @param {!LineCoordType} coordinates The coordinates.
+         * @param {import("../geom/SimpleGeometry.js").default=} opt_geometry Optional geometry.
+         * @return {import("../geom/SimpleGeometry.js").default} A geometry.
+         */
+        geometryFunction = function(coordinates, opt_geometry) {
+
+          /*
+           * An ellipse is represented as a polygon in diamond shape.
+           *       +
+           *     /   \
+           *    /     \
+           *   /       \
+           *  /  a_vec  \
+           * 1-----•---->2
+           *  \         /|
+           *   \       / | intersection_vec
+           *    \     /  |
+           *     \   /   v
+           * ------+-------<3>--- (the third point may be anywhere on this line)
+           */
+
+          if (coordinates.length > 2) {
+            var first = coordinates[0];
+            var second = coordinates[1];
+            var third = coordinates[2];
+
+            // vector from first to second
+            var a_vec = [second[0] - first[0], second[1] - first[1]];
+            // Center point.
+            var center = [first[0] + a_vec[0] * 0.5, first[1] + a_vec[1] * 0.5];
+
+            if (a_vec[1] === 0) {
+                // catch the case where the first and second point are equal
+                coordinates = [[first, first, first, first]];
+            } else {
+              // perpendicular vector to a_vec
+              var b_vec = [-1 * a_vec[1], a_vec[0]];
+
+              // helper
+              var tmp = a_vec[0] / a_vec[1];
+              // compute the intersection parameter of the two lines
+              // going from second in b_vec direction
+              // and from third in a_vec direction
+              var x = (third[0] + tmp * (second[1] - third[1]) - second[0]) / (b_vec[0] - b_vec[1] * tmp);
+
+              // vector from second to the intersection point
+              var intersection_vec = [x * b_vec[0], x * b_vec[1]];
+
+              coordinates = [[
+                [first[0], first[1]],
+                [center[0] - intersection_vec[0], center[1] - intersection_vec[1]],
+                [second[0], second[1]],
+                [center[0] + intersection_vec[0], center[1] + intersection_vec[1]]
+              ]];
+            }
+          } else {
+            coordinates = [coordinates];
+          }
+
+          var geometry = opt_geometry;
+          if (geometry) {
+            geometry.setCoordinates(coordinates);
+          } else {
+            geometry = new Ellipse(coordinates);
+          }
+
+          return geometry;
         };
       } else {
         let Constructor;
@@ -734,7 +876,22 @@ class Draw extends PointerInteraction {
     }
     /** @type {LineString} */
     let sketchLineGeom;
-    if (geometry.getType() == GeometryType.POLYGON &&
+    if (this.mode_ === Mode.ELLIPSE) {
+      if (!this.sketchLine_) {
+        this.sketchLine_ = new Feature();
+      }
+      sketchLineGeom = /** @type {LineString} */ (this.sketchLine_.getGeometry());
+      if (this.sketchCoords_.length < 3) {
+        sketchLineGeom.setCoordinates(this.sketchCoords_);
+      } else {
+        coordinates = geometry.getCoordinates()[0];
+        var center = [
+          (coordinates[0][0] + coordinates[2][0]) / 2,
+          (coordinates[0][1] + coordinates[2][1]) / 2
+        ];
+        sketchLineGeom.setCoordinates([coordinates[0], center, coordinates[3]]);
+      }
+    } else if (geometry.getType() == GeometryType.POLYGON &&
         this.mode_ !== Mode.POLYGON) {
       if (!this.sketchLine_) {
         this.sketchLine_ = new Feature();
@@ -766,7 +923,7 @@ class Draw extends PointerInteraction {
     const geometry = /** @type {import("../geom/SimpleGeometry.js").default} */ (this.sketchFeature_.getGeometry());
     let done;
     let coordinates;
-    if (this.mode_ === Mode.LINE_STRING) {
+    if (this.mode_ === Mode.LINE_STRING || this.mode_ === Mode.ELLIPSE) {
       this.finishCoordinate_ = coordinate.slice();
       coordinates = /** @type {LineCoordType} */ (this.sketchCoords_);
       if (coordinates.length >= this.maxPoints_) {
@@ -1034,13 +1191,17 @@ function getMode(type) {
       type === GeometryType.MULTI_POINT) {
     mode = Mode.POINT;
   } else if (type === GeometryType.LINE_STRING ||
-      type === GeometryType.MULTI_LINE_STRING) {
+      type === GeometryType.MULTI_LINE_STRING ||
+      // Use LineString mode for rectangle so the geometry always has an end point.
+      type === GeometryType.RECTANGLE) {
     mode = Mode.LINE_STRING;
   } else if (type === GeometryType.POLYGON ||
       type === GeometryType.MULTI_POLYGON) {
     mode = Mode.POLYGON;
   } else if (type === GeometryType.CIRCLE) {
     mode = Mode.CIRCLE;
+  } else if (type === GeometryType.ELLIPSE) {
+    mode = Mode.ELLIPSE;
   }
   return (
     /** @type {!Mode} */ (mode)

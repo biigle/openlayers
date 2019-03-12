@@ -28,7 +28,9 @@ const GEOMETRY_RENDERERS = {
   'MultiLineString': renderMultiLineStringGeometry,
   'MultiPolygon': renderMultiPolygonGeometry,
   'GeometryCollection': renderGeometryCollectionGeometry,
-  'Circle': renderCircleGeometry
+  'Circle': renderCircleGeometry,
+  'Rectangle': renderPolygonGeometry,
+  'Ellipse': renderEllipseGeometry
 };
 
 
@@ -314,3 +316,25 @@ function renderPolygonGeometry(replayGroup, geometry, style, feature) {
     textReplay.drawText(geometry, feature);
   }
 }
+
+/**
+ * @param {import("../render/ReplayGroup.js").default} replayGroup Replay group.
+ * @param {import("../geom/Ellipse.js").default|import("../render/Feature.js").default} geometry Geometry.
+ * @param {import("../style/Style.js").default} style Style.
+ * @param {import("../Feature.js").FeatureLike} feature Feature.
+ */
+function renderEllipseGeometry(replayGroup, geometry, style, feature) {
+  var fillStyle = style.getFill();
+  var strokeStyle = style.getStroke();
+  if (fillStyle || strokeStyle) {
+    var ellipseReplay = replayGroup.getReplay(style.getZIndex(), ReplayType.ELLIPSE);
+    ellipseReplay.setFillStrokeStyle(fillStyle, strokeStyle);
+    ellipseReplay.drawEllipse(geometry, feature);
+  }
+  var textStyle = style.getText();
+  if (textStyle) {
+    var textReplay = replayGroup.getReplay(style.getZIndex(), ReplayType.TEXT);
+    textReplay.setTextStyle(textStyle, replayGroup.addDeclutter(false));
+    textReplay.drawText(geometry, feature);
+  }
+};

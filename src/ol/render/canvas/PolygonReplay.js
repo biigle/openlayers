@@ -111,6 +111,52 @@ class CanvasPolygonReplay extends CanvasReplay {
   /**
    * @inheritDoc
    */
+  drawEllipse(ellipseGeometry, feature) {
+    var state = this.state;
+    var fillStyle = state.fillStyle;
+    var strokeStyle = state.strokeStyle;
+    if (fillStyle === undefined && strokeStyle === undefined) {
+      return;
+    }
+    this.setFillStrokeStyles_(ellipseGeometry);
+    this.beginGeometry(ellipseGeometry, feature);
+    // always fill the circle for hit detection
+    this.hitDetectionInstructions.push([
+      CanvasInstruction.SET_FILL_STYLE,
+      asString(defaultFillStyle)
+    ]);
+    if (state.strokeStyle !== undefined) {
+      this.hitDetectionInstructions.push([
+        CanvasInstruction.SET_STROKE_STYLE,
+        state.strokeStyle, state.lineWidth, state.lineCap, state.lineJoin,
+        state.miterLimit, state.lineDash, state.lineDashOffset
+      ]);
+    }
+    var flatCoordinates = ellipseGeometry.getFlatCoordinates();
+    var myBegin = this.coordinates.length;
+    // Always use all coordinates of an ellipse and don't clip them.
+    Array.prototype.push.apply(this.coordinates, flatCoordinates)
+    var myEnd = this.coordinates.length;
+    var beginPathInstruction = [CanvasInstruction.BEGIN_PATH];
+    var ellipseInstruction = [CanvasInstruction.ELLIPSE, myBegin, myEnd];
+    this.instructions.push(beginPathInstruction, ellipseInstruction);
+    this.hitDetectionInstructions.push(beginPathInstruction, ellipseInstruction);
+    var fillInstruction = [CanvasInstruction.FILL];
+    this.hitDetectionInstructions.push(fillInstruction);
+    if (state.fillStyle !== undefined) {
+      this.instructions.push(fillInstruction);
+    }
+    if (state.strokeStyle !== undefined) {
+      var strokeInstruction = [CanvasInstruction.STROKE];
+      this.instructions.push(strokeInstruction);
+      this.hitDetectionInstructions.push(strokeInstruction);
+    }
+    this.endGeometry(ellipseGeometry, feature);
+  };
+
+  /**
+   * @inheritDoc
+   */
   drawPolygon(polygonGeometry, feature) {
     const state = this.state;
     const fillStyle = state.fillStyle;

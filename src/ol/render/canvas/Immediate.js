@@ -443,6 +443,8 @@ class CanvasImmediateRenderer extends VectorContext {
         this.drawLineString(/** @type {import("../../geom/LineString.js").default} */ (geometry));
         break;
       case GeometryType.POLYGON:
+      case GeometryType.RECTANGLE:
+      case GeometryType.ELLIPSE:
         this.drawPolygon(/** @type {import("../../geom/Polygon.js").default} */ (geometry));
         break;
       case GeometryType.MULTI_POINT:
