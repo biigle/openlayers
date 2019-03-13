@@ -878,7 +878,7 @@ class Draw extends PointerInteraction {
     let sketchLineGeom;
     if (this.mode_ === Mode.ELLIPSE) {
       if (!this.sketchLine_) {
-        this.sketchLine_ = new Feature();
+        this.sketchLine_ = new Feature(new LineString([0, 0]));
       }
       sketchLineGeom = /** @type {LineString} */ (this.sketchLine_.getGeometry());
       if (this.sketchCoords_.length < 3) {
