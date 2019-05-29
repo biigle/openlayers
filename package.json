@@ -40,6 +40,9 @@
   },
   "devDependencies": {
     "@openlayers/eslint-plugin": "^4.0.0-beta.1",
+    "@turf/helpers": "^6.1.4",
+    "@turf/intersect": "^6.1.3",
+    "@turf/union": "^6.0.3",
     "@types/arcgis-rest-api": "^10.4.3",
     "@types/geojson": "^7946.0.4",
     "@types/rbush": "^2.0.2",

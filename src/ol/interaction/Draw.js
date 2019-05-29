@@ -134,7 +134,7 @@ const Mode = {
 /**
  * @enum {string}
  */
-const DrawEventType = {
+export const DrawEventType = {
   /**
    * Triggered upon feature draw start
    * @event DrawEvent#drawstart
@@ -155,7 +155,7 @@ const DrawEventType = {
  * Events emitted by {@link module:ol/interaction/Draw~Draw} instances are
  * instances of this type.
  */
-class DrawEvent extends Event {
+export class DrawEvent extends Event {
   /**
    * @param {DrawEventType} type Type.
    * @param {Feature} feature The feature drawn.
