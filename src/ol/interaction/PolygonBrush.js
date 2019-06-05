@@ -16,18 +16,9 @@ import {fromCircle} from '../geom/Polygon.js'
 
 class PolygonBrush extends Draw {
 
-
   constructor(options) {
 
-//    const pointerOptions = /** @type {import("./Pointer.js").Options} */ (options);
-//    if (!pointerOptions.stopDown) {
-//      pointerOptions.stopDown = FALSE;
-//    }
-
-//    console.log(pointerOptions);
-
     super(options)
-
     this.circleRadius_ = 10000  //TODO better value
   }
 
@@ -73,27 +64,10 @@ class PolygonBrush extends Draw {
   startDrawing_(event) {
     const start = event.coordinate;
     this.finishCoordinate_ = start;
-//    if (this.mode_ === Mode.POINT) {
     this.sketchCoords_ = start.slice();
-//    console.log(this.sketchCoords_)
-//    console.log(this.mode_)
-//    } else if (this.mode_ === Mode.POLYGON) {
-//      this.sketchCoords_ = [[start.slice(), start.slice()]];
-//      this.sketchLineCoords_ = this.sketchCoords_[0];
-//    } else {
-//      this.sketchCoords_ = [start.slice(), start.slice()];
-//    }
-//    if (this.sketchLineCoords_) {
-//      this.sketchLine_ = new Feature(
-//        new LineString(this.sketchLineCoords_));
-//    }
-//    const circle_ = new Circle(this.sketchCoords_,this.circleRadius_);
+
     const geometry = new Circle(this.sketchCoords_,this.circleRadius_);
     this.sketchFeature_ = new Feature(geometry);
-//    if (this.geometryName_) {
-//      this.sketchFeature_.setGeometryName(this.geometryName_);
-//    }
-//    this.sketchFeature_.setGeometry(geometry);
   }
 
   /**
@@ -109,60 +83,8 @@ class PolygonBrush extends Draw {
     }
     const geometry = fromCircle(sketchFeature.getGeometry());
     sketchFeature.setGeometry(geometry);
-    console.log(geometry)
-
-//    let coordinates = this.sketchCoords_;
-//    const geometry = /** @type {import("../geom/SimpleGeometry.js").default} */ (sketchFeature.getGeometry());
-//    if (this.mode_ === Mode.LINE_STRING) {
-//      // remove the redundant last point
-//      coordinates.pop();
-//      this.geometryFunction_(coordinates, geometry);
-//    } else if (this.mode_ === Mode.POLYGON) {
-//      // remove the redundant last point in ring
-//      /** @type {PolyCoordType} */ (coordinates)[0].pop();
-//      this.geometryFunction_(coordinates, geometry);
-//      coordinates = geometry.getCoordinates();
-//    }
-
-//    // cast multi-part geometries
-//    if (this.type_ === GeometryType.MULTI_POINT) {
-//      sketchFeature.setGeometry(new MultiPoint([/** @type {PointCoordType} */(coordinates)]));
-//    } else if (this.type_ === GeometryType.MULTI_LINE_STRING) {
-//      sketchFeature.setGeometry(new MultiLineString([/** @type {LineCoordType} */(coordinates)]));
-//    } else if (this.type_ === GeometryType.MULTI_POLYGON) {
-//      sketchFeature.setGeometry(new MultiPolygon([/** @type {PolyCoordType} */(coordinates)]));
-//    }
 
     var current_poly = turfPolygon(geometry.getCoordinates())
-    console.log("Turf polygon:", current_poly)
-
-    var features_to_remove = [];
-    console.log(this.source_.getFeatures())
-    for (var i = 0; i < this.source_.getFeatures().length; i++) {
-        var compareFeature = this.source_.getFeatures()[i];
-        console.log(compareFeature);
-        var compareCoords = compareFeature.getGeometry().getCoordinates();
-        var comparePoly = turfPolygon(compareCoords);
-        console.log("Turf compare polygon:", comparePoly);
-        var polygon_intersection = intersect(current_poly,comparePoly);
-        console.log(polygon_intersection)
-        if (polygon_intersection !== null) {
-            features_to_remove.push(compareFeature);
-            var polygonUnion = union(current_poly, comparePoly);
-            console.log(features_to_remove);
-            sketchFeature.getGeometry().setCoordinates(polygonUnion.geometry["coordinates"]);
-        }
-    }
-
-    console.log(this.source_.getFeatures().splice())
-    console.log(features_to_remove)
-    console.log("Before:",this.source_.getFeatures())
-    for (var j = 0; j < features_to_remove.length; j++) {
-        this.source_.removeFeature(features_to_remove[j]);
-    }
-    console.log("After:",this.source_.getFeatures())
-
-
 
     // First dispatch event to allow full set up of feature
     this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
@@ -175,37 +97,33 @@ class PolygonBrush extends Draw {
       this.source_.addFeature(sketchFeature);
     }
 
+    var features_to_remove = [];
+    for (var i = 0; i < this.source_.getFeatures().length; i++) {
+        var compareFeature = this.source_.getFeatures()[i];
+        if (compareFeature != sketchFeature) {
+            var compareCoords = compareFeature.getGeometry().getCoordinates();
+            var comparePoly = turfPolygon(compareCoords);
+            var polygon_intersection = intersect(current_poly,comparePoly);
+            if (polygon_intersection !== null) {
+                features_to_remove.push(compareFeature);
+            }
+        }
+    }
 
+    features_to_remove.forEach(function(entry) {
+        current_poly = union(current_poly, turfPolygon(entry.getGeometry().getCoordinates()));
+    })
+    if (current_poly.geometry.type == 'MultiPolygon') {
+        current_poly = turfPolygon(current_poly.geometry.coordinates[0])
+    }
+    sketchFeature.getGeometry().setCoordinates(current_poly.geometry["coordinates"]);
 
-//    var features = vector.getSource().getFeatures();
-//    console.log("Features:",features)
-
-////    features.forEach(function(feature) {
-////       console.log(feature.getGeometry().getCoordinates());
-////       for (var i = 0; i < features.length; i++) {
-
-////       }
-////    });
-//    for (var i = 0; i < features.length; i++) {
-//        console.log(features[i].getGeometryName())
-////        for (var j = 0; j < features.length; j++) {
-////            console.log(new Intersets)
-////            console.log()
-////        }
-//    })
+    for (var j = 0; j < features_to_remove.length; j++) {
+        this.source_.removeFeature(features_to_remove[j]);
+    }
 
   }
-
-  //TODO super.pointerOptions not defined if the lines below are used
   //TODO draw polygons of the form of the sketch point circle on mouse-over
-  //TODO merge polygons already drawn
-
-//    this.updateSketchFeatures_();
-//    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWSTART, this.sketchFeature_));
-//    console.log(this.sketchFeature_);
-//    console.log(this.geometryName_);
-//    console.log(this.geometryFunction_);
-
 }
 
 export default PolygonBrush;
