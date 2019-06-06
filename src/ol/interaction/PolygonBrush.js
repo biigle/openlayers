@@ -13,6 +13,8 @@ import {shiftKeyOnly} from '../events/condition.js';
 import {TRUE, FALSE} from '../functions.js';
 import Polygon from '../geom/Polygon.js'
 import {fromCircle} from '../geom/Polygon.js'
+import Style from '../style/Style.js'
+import Stroke from '../style/Stroke.js'
 
 class PolygonBrush extends Draw {
 
@@ -20,6 +22,8 @@ class PolygonBrush extends Draw {
 
     super(options)
     this.circleRadius_ = 10000  //TODO better value
+    this.drawmode_ = false;
+    this.tmp_features_array_ = [];
   }
 
   handleEvent(event) {
@@ -27,9 +31,25 @@ class PolygonBrush extends Draw {
     const type = event.type;
     if (shiftKeyOnly(event) && (type === EventType.WHEEL || type === EventType.MOUSEWHEEL)) {
       pass = false; 
-      console.log(event.originalEvent.deltaY)
       this.updateSketchPointRadius_(event);
     }
+    if (shiftKeyOnly(event) && (type === MapBrowserEventType.POINTERDOWN)) {
+      pass = false;
+      this.drawmode_ = true;
+    }
+    if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
+      pass = false;
+      this.startDrawing_(event);
+      this.finishDrawing();
+    }
+    if (this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
+      this.drawmode_ = false;
+      this.mergeNewPolygon();
+    }
+//    if (this.drawmode_ == true && type === MapBrowserEventType.POINTERDOWN) {
+//      this.drawmode_ = false;
+//      //TODO make an intersection
+//    }
     return pass
   }
 
@@ -68,6 +88,9 @@ class PolygonBrush extends Draw {
 
     const geometry = new Circle(this.sketchCoords_,this.circleRadius_);
     this.sketchFeature_ = new Feature(geometry);
+//    if (this.drawmode_) {
+//      this.sketchFeature_.setStyle()
+//    }
   }
 
   /**
@@ -95,6 +118,14 @@ class PolygonBrush extends Draw {
     }
     if (this.source_) {
       this.source_.addFeature(sketchFeature);
+      if (this.drawmode_) {
+        this.tmp_features_array_.push(sketchFeature);
+//        var stl = new Style();
+//        var strk = new Stroke()
+//        strk.setColor()
+//        stl.setStroke()
+//        this.sketchFeature_.set
+      }
     }
 
     var features_to_remove = [];
@@ -104,8 +135,17 @@ class PolygonBrush extends Draw {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
             var comparePoly = turfPolygon(compareCoords);
             var polygon_intersection = intersect(current_poly,comparePoly);
-            if (polygon_intersection !== null) {
-                features_to_remove.push(compareFeature);
+            if (this.drawmode_) {
+                if (polygon_intersection !== null) {
+                    if (this.tmp_features_array_.includes(compareFeature)) {
+                        features_to_remove.push(compareFeature);
+                    }
+                }
+            }
+            else {
+                if (polygon_intersection !== null) {
+                    features_to_remove.push(compareFeature);
+                }
             }
         }
     }
@@ -120,10 +160,45 @@ class PolygonBrush extends Draw {
 
     for (var j = 0; j < features_to_remove.length; j++) {
         this.source_.removeFeature(features_to_remove[j]);
+        if (this.drawmode_) {
+            const idx = this.tmp_features_array_.indexOf(features_to_remove[j]);
+            this.tmp_features_array_.splice(idx,1);
+        }
     }
-
   }
-  //TODO draw polygons of the form of the sketch point circle on mouse-over
+
+    mergeNewPolygon() {
+        for (var i = 0; i < this.tmp_features_array_.length; i++) {
+            const currentFeature = this.tmp_features_array_[i];
+            const geometry = currentFeature.getGeometry();
+            var current_poly = turfPolygon(geometry.getCoordinates())
+            var features_to_remove = [];
+
+            for (var j = 0; j < this.source_.getFeatures().length; j++) {
+                var compareFeature = this.source_.getFeatures()[j];
+                if (compareFeature != currentFeature) {
+                    var compareCoords = compareFeature.getGeometry().getCoordinates();
+                    var comparePoly = turfPolygon(compareCoords);
+                    var polygon_intersection = intersect(current_poly,comparePoly);
+                    if (polygon_intersection !== null) {
+                        features_to_remove.push(compareFeature);
+                    }
+                }
+            }
+            features_to_remove.forEach(function(entry) {
+                current_poly = union(current_poly, turfPolygon(entry.getGeometry().getCoordinates()));
+            })
+            if (current_poly.geometry.type == 'MultiPolygon') {
+                current_poly = turfPolygon(current_poly.geometry.coordinates[0])
+            }
+            currentFeature.getGeometry().setCoordinates(current_poly.geometry["coordinates"]);
+
+            for (var k = 0; k < features_to_remove.length; k++) {
+                this.source_.removeFeature(features_to_remove[k]);
+            }
+        }
+        this.tmp_features_array_ = [];
+    }
 }
 
 export default PolygonBrush;
