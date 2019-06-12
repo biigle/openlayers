@@ -3,6 +3,7 @@ import union from '@turf/union'
 import difference from '@turf/difference'
 import {polygon as turfPolygon} from '@turf/helpers'
 import {multiPolygon as turfMultiPolygon} from '@turf/helpers'
+import booleanContains from '@turf/boolean-contains'
 import Draw from './Draw.js';
 import {DrawEvent} from './Draw.js';
 import {DrawEventType} from './Draw.js';
@@ -55,16 +56,66 @@ class PolygonBrush extends Draw {
       this.startDrawing_(event);
       this.finishErasing();
     }
-    if ((this.drawmode_ || this.erasemode_) && type === MapBrowserEventType.POINTERUP) {
+//    if ((this.drawmode_ || this.erasemode_) && type === MapBrowserEventType.POINTERUP) {
+//      this.drawmode_ = false;
+//      this.erasemode_ = false;
+////      this.mergeNewPolygon();
+//    }
+    if (btn == 2 && this.erasemode_ && type === MapBrowserEventType.POINTERUP) {
+      this.startDrawing_(event);
+      this.finishErasing();
       this.drawmode_ = false;
       this.erasemode_ = false;
-//      this.mergeNewPolygon();
+    }
+    if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
+      this.startDrawing_(event);
+      this.finishDrawing();
+      this.drawmode_ = false;
+      this.erasemode_ = false;
     }
 //    if (altShiftKeysOnly(event) && this.drawmode_ == true && type === MapBrowserEventType.POINTERUP) {
 //      this.drawmode_ = false;
 //      this.subtractNewPolygon()
 //    }
     return pass
+  }
+
+  handleUpEvent(event) {
+//    let pass = true;
+
+//    if (this.downTimeout_) {
+//      clearTimeout(this.downTimeout_);
+//      this.downTimeout_ = undefined;
+//    }
+
+//    this.handlePointerMove_(event);
+
+//    const circleMode = this.mode_ === Mode.CIRCLE;
+
+//    if (this.shouldHandle_) {
+//      if (!this.finishCoordinate_) {
+//        this.startDrawing_(event);
+//        if (this.mode_ === Mode.POINT) {
+//          this.finishDrawing();
+//        }
+//      } else if (this.freehand_ || circleMode) {
+//        this.finishDrawing();
+//      } else if (this.atFinish_(event)) {
+//        if (this.finishCondition_(event)) {
+//          this.finishDrawing();
+//        }
+//      } else {
+//        this.addToDrawing_(event);
+//      }
+//      pass = false;
+//    } else if (this.freehand_) {
+//      this.finishCoordinate_ = null;
+//      this.abortDrawing_();
+//    }
+//    if (!pass && this.stopClick_) {
+//      event.stopPropagation();
+//    }
+//    return pass;
   }
 
   /**
@@ -170,7 +221,14 @@ class PolygonBrush extends Draw {
     if (current_poly.geometry.type == 'MultiPolygon') {
         current_poly = turfPolygon(current_poly.geometry.coordinates[0])
     }
-    sketchFeature.getGeometry().setCoordinates(current_poly.geometry["coordinates"]);
+    var coords = current_poly.geometry.coordinates
+    console.log(coords[0])
+    console.log("First and last:",coords[0][0],coords[0][coords.length-1])
+    if (coords[0][0] != coords[0][coords.length-1]) {
+        coords[0].push(coords[0]);
+        console.log("Safety coords pushed");
+    }
+    sketchFeature.getGeometry().setCoordinates(coords);
 
     for (var j = 0; j < features_to_remove.length; j++) {
         this.source_.removeFeature(features_to_remove[j]);
@@ -222,7 +280,7 @@ class PolygonBrush extends Draw {
     const geometry = fromCircle(sketchFeature.getGeometry());
     sketchFeature.setGeometry(geometry);
 
-    var current_poly = turfMultiPolygon([geometry.getCoordinates()])
+    var current_poly = turfPolygon(geometry.getCoordinates())
 
     // First dispatch event to allow full set up of feature
     this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
@@ -258,19 +316,40 @@ class PolygonBrush extends Draw {
 
     for (var l = 0; l < features_to_remove.length; l++) {
         var entry = features_to_remove[l];
-        current_poly = difference(turfMultiPolygon([entry.getGeometry().getCoordinates()]),current_poly);
-        if (current_poly == null) {
-            this.source_.removeFeature(entry);
-        }
-        else {
-            if (current_poly.geometry.type == 'MultiPolygon') {
-                for (var m = 0; m < current_poly.geometry.coordinates.length; m++) {
-                    this.source_.addFeature(new Feature(new Polygon(current_poly.geometry.coordinates[m])))
-                }
+        var containsPoly1 = turfPolygon(entry.getGeometry().getCoordinates())
+//        var containsPoly2 = turfPolygon(current_poly.geometry.coordinates[0])
+        if (!booleanContains(containsPoly1,current_poly)) {
+            var intersection_poly = turfMultiPolygon([entry.getGeometry().getCoordinates()])
+            current_poly = difference(intersection_poly,turfMultiPolygon([current_poly.geometry.coordinates]));
+            if (current_poly == null) {
                 this.source_.removeFeature(entry);
+                break;
             }
             else {
-                entry.getGeometry().setCoordinates(current_poly.geometry["coordinates"]);
+                if (current_poly.geometry.type == 'MultiPolygon') {
+                    console.log(current_poly)
+                    for (var m = 0; m < current_poly.geometry.coordinates.length; m++) {
+                        var coords = current_poly.geometry.coordinates[m]
+                        console.log(coords)
+                        console.log("First and last:",coords[0][0],coords[0][coords.length-1])
+                        if (coords[0][0] != coords[0][coords.length-1]) {
+                            coords[0].push(coords[0]);
+                            console.log("Safety coords pushed");
+                        }
+                        this.source_.addFeature(new Feature(new Polygon(coords)))
+                    }
+                    this.source_.removeFeature(entry);
+                }
+                else { //TODO get the following inside a function
+                    var coords = current_poly.geometry.coordinates
+                    console.log(coords)
+                    console.log("First and last:",coords[0][0],coords[0][coords.length-1])
+                    if (coords[0][0] != coords[0][coords.length-1]) {
+                        coords[0].push(coords[0]);
+                        console.log("Safety coords pushed");
+                    }
+                    entry.getGeometry().setCoordinates(coords);
+                }
             }
         }
     }
