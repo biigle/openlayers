@@ -41,7 +41,7 @@ class PolygonSubtract extends PolygonBrush {
     const geometry = fromCircle(sketchFeature.getGeometry());
     sketchFeature.setGeometry(geometry);
 
-    var current_poly = turfPolygon(geometry.getCoordinates())
+    var sketchPolygon = turfPolygon(geometry.getCoordinates())
 
     // First dispatch event to allow full set up of feature
     this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
@@ -54,44 +54,50 @@ class PolygonSubtract extends PolygonBrush {
       this.source_.addFeature(sketchFeature);
     }
 
-    this.features_to_remove_ = [];
+    this.intersect_features_ = [];
     for (var i = 0; i < this.source_.getFeatures().length; i++) {
         var compareFeature = this.source_.getFeatures()[i];
         if (compareFeature != sketchFeature) {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
             var comparePoly = turfMultiPolygon([compareCoords]);
-            var polygon_intersection = intersect(current_poly,comparePoly);
+            try {
+                var polygon_intersection = intersect(sketchPolygon,comparePoly);
+            }
+            catch (error) {
+                console.log(error)
+                console.log(sketchPolygon)
+                console.log(comparePoly)
+            }
             if (polygon_intersection !== null) {
-                this.features_to_remove_.push(compareFeature);
+                this.intersect_features_.push(compareFeature);
             }
         }
     }
 
-    for (var l = 0; l < this.features_to_remove_.length; l++) {
-        var entry = this.features_to_remove_[l];
-        var containsPoly1 = turfPolygon(entry.getGeometry().getCoordinates())
-//        var containsPoly2 = turfPolygon(current_poly.geometry.coordinates[0])
-        if (!booleanContains(containsPoly1,current_poly)) {
-            var intersection_poly = turfMultiPolygon([entry.getGeometry().getCoordinates()])
-            current_poly = difference(intersection_poly,turfMultiPolygon([current_poly.geometry.coordinates]));
-            if (current_poly == null) {
-                this.source_.removeFeature(entry);
+    for (var l = 0; l < this.intersect_features_.length; l++) {
+        var intersectFeature = this.intersect_features_[l];
+        var intersectFeatureAsPolygon = turfPolygon(intersectFeature.getGeometry().getCoordinates())
+        if (!booleanContains(intersectFeatureAsPolygon,sketchPolygon)) {
+            var intersectMultiPolygon = turfMultiPolygon([intersectFeature.getGeometry().getCoordinates()])
+            intersectMultiPolygon = difference(intersectMultiPolygon,turfMultiPolygon([sketchPolygon.geometry.coordinates]));
+            if (intersectMultiPolygon == null) {
+                this.source_.removeFeature(intersectFeature);
                 break;
             }
             else {
-                if (current_poly.geometry.type == 'MultiPolygon') {
-                    console.log(current_poly)
-                    for (var m = 0; m < current_poly.geometry.coordinates.length; m++) {
-                        var coords = current_poly.geometry.coordinates[m]
+                if (intersectMultiPolygon.geometry.type == 'MultiPolygon') {
+                    console.log(intersectMultiPolygon)
+                    for (var m = 0; m < intersectMultiPolygon.geometry.coordinates.length; m++) {
+                        var coords = intersectMultiPolygon.geometry.coordinates[m]
                         coords = this.fixLastCoordinate(coords);
                         this.source_.addFeature(new Feature(new Polygon(coords)))
                     }
-                    this.source_.removeFeature(entry);
+                    this.source_.removeFeature(intersectFeature);
                 }
                 else {
-                    var coords = current_poly.geometry.coordinates
+                    var coords = intersectMultiPolygon.geometry.coordinates
                     coords = this.fixLastCoordinate(coords);
-                    entry.getGeometry().setCoordinates(coords);
+                    intersectFeature.getGeometry().setCoordinates(coords);
                 }
             }
         }
