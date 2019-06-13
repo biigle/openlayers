@@ -4,6 +4,7 @@ import difference from '@turf/difference'
 import {polygon as turfPolygon} from '@turf/helpers'
 import {multiPolygon as turfMultiPolygon} from '@turf/helpers'
 import booleanContains from '@turf/boolean-contains'
+import booleanOverlap from '@turf/boolean-overlap'
 import Draw from './Draw.js';
 import PolygonBrush from './PolygonBrush.js'
 import {DrawEvent} from './Draw.js';
@@ -59,16 +60,17 @@ class PolygonSubtract extends PolygonBrush {
         var compareFeature = this.source_.getFeatures()[i];
         if (compareFeature != sketchFeature) {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
-            var comparePoly = turfMultiPolygon([compareCoords]);
-            try {
-                var polygon_intersection = intersect(sketchPolygon,comparePoly);
-            }
-            catch (error) {
-                console.log(error)
-                console.log(sketchPolygon)
-                console.log(comparePoly)
-            }
-            if (polygon_intersection !== null) {
+//            var comparePoly = turfMultiPolygon([compareCoords]);
+            var comparePoly = turfPolygon(compareCoords);
+//            try {
+//                var polygon_intersection = intersect(sketchPolygon,comparePoly);
+//            }
+//            catch (error) {
+//                console.log(error)
+//                console.log(sketchPolygon)
+//                console.log(comparePoly)
+//            }
+            if (booleanOverlap(sketchPolygon,comparePoly) || booleanContains(sketchPolygon,comparePoly)) {
                 this.intersect_features_.push(compareFeature);
             }
         }
