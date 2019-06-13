@@ -4,6 +4,7 @@ import difference from '@turf/difference'
 import {polygon as turfPolygon} from '@turf/helpers'
 import {multiPolygon as turfMultiPolygon} from '@turf/helpers'
 import booleanContains from '@turf/boolean-contains'
+import booleanOverlap from '@turf/boolean-overlap'
 import Draw from './Draw.js';
 import PolygonBrush from './PolygonBrush.js'
 import {DrawEvent} from './Draw.js';
@@ -61,9 +62,12 @@ class PolygonAdd extends PolygonBrush {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
             var comparePoly = turfPolygon(compareCoords);
             var polygon_intersection = intersect(currentPolygon,comparePoly);
-            if (polygon_intersection !== null) {
+            if (booleanOverlap(currentPolygon,comparePoly) || booleanContains(currentPolygon,comparePoly)) {
                 this.intersect_features_.push(compareFeature);
             }
+//            if (polygon_intersection !== null) {
+//                this.intersect_features_.push(compareFeature);
+//            }
         }
 //        console.log("All features:",this.source_.getFeatures())
 //        console.log("Ft to remove",this.intersect_features_)
