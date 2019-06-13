@@ -26,8 +26,8 @@ class PolygonBrush extends Draw {
     super(options)
     this.circleRadius_ = 10000  //TODO better value
     this.drawmode_ = false;
-    this.erasemode_ = false;
     this.tmp_features_array_ = [];
+    this.features_to_remove_ = [];
   }
 
   handleEvent(event) {
@@ -42,41 +42,16 @@ class PolygonBrush extends Draw {
       pass = false;
       this.drawmode_ = true;
     }
-    if (btn == 2 && (type === MapBrowserEventType.POINTERDOWN)) {
-      pass = false;
-      this.erasemode_ = true;
-    }
     if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
       pass = false;
       this.startDrawing_(event);
       this.finishDrawing();
     }
-    if (this.erasemode_ && type === MapBrowserEventType.POINTERMOVE) {
-      pass = false;
-      this.startDrawing_(event);
-      this.finishErasing();
-    }
-//    if ((this.drawmode_ || this.erasemode_) && type === MapBrowserEventType.POINTERUP) {
-//      this.drawmode_ = false;
-//      this.erasemode_ = false;
-////      this.mergeNewPolygon();
-//    }
-    if (btn == 2 && this.erasemode_ && type === MapBrowserEventType.POINTERUP) {
-      this.startDrawing_(event);
-      this.finishErasing();
-      this.drawmode_ = false;
-      this.erasemode_ = false;
-    }
     if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
       this.startDrawing_(event);
       this.finishDrawing();
       this.drawmode_ = false;
-      this.erasemode_ = false;
     }
-//    if (altShiftKeysOnly(event) && this.drawmode_ == true && type === MapBrowserEventType.POINTERUP) {
-//      this.drawmode_ = false;
-//      this.subtractNewPolygon()
-//    }
     return pass
   }
 
@@ -153,9 +128,6 @@ class PolygonBrush extends Draw {
 
     const geometry = new Circle(this.sketchCoords_,this.circleRadius_);
     this.sketchFeature_ = new Feature(geometry);
-//    if (this.drawmode_) {
-//      this.sketchFeature_.setStyle()
-//    }
   }
 
   /**
@@ -183,59 +155,37 @@ class PolygonBrush extends Draw {
     }
     if (this.source_) {
       this.source_.addFeature(sketchFeature);
-//      if (this.drawmode_) {
-//        this.tmp_features_array_.push(sketchFeature);
-//        var stl = new Style();
-//        var strk = new Stroke()
-//        strk.setColor()
-//        stl.setStroke()
-//        this.sketchFeature_.set
-//      }
     }
 
-    var features_to_remove = [];
+    this.features_to_remove_ = [];
     for (var i = 0; i < this.source_.getFeatures().length; i++) {
         var compareFeature = this.source_.getFeatures()[i];
         if (compareFeature != sketchFeature) {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
             var comparePoly = turfPolygon(compareCoords);
             var polygon_intersection = intersect(current_poly,comparePoly);
-//            if (this.drawmode_) {
-//                if (polygon_intersection !== null) {
-//                    if (this.tmp_features_array_.includes(compareFeature)) {
-//                        features_to_remove.push(compareFeature);
-//                    }
-//                }
-//            }
-//            else {
             if (polygon_intersection !== null) {
-                features_to_remove.push(compareFeature);
+                this.features_to_remove_.push(compareFeature);
             }
 //            }
         }
+//        console.log("All features:",this.source_.getFeatures())
+//        console.log("Ft to remove",this.features_to_remove_)
+//        console.log("tmp ft",this.tmp_features_array_)
     }
 
-    features_to_remove.forEach(function(entry) {
+    this.features_to_remove_.forEach(function(entry) {
         current_poly = union(current_poly, turfPolygon(entry.getGeometry().getCoordinates()));
     })
     if (current_poly.geometry.type == 'MultiPolygon') {
         current_poly = turfPolygon(current_poly.geometry.coordinates[0])
     }
     var coords = current_poly.geometry.coordinates
-    console.log(coords[0])
-    console.log("First and last:",coords[0][0],coords[0][coords.length-1])
-    if (coords[0][0] != coords[0][coords.length-1]) {
-        coords[0].push(coords[0]);
-        console.log("Safety coords pushed");
-    }
+    coords = this.fixLastCoordinate(coords);
     sketchFeature.getGeometry().setCoordinates(coords);
 
-    for (var j = 0; j < features_to_remove.length; j++) {
-        this.source_.removeFeature(features_to_remove[j]);
-//        if (this.drawmode_) {
-//            const idx = this.tmp_features_array_.indexOf(features_to_remove[j]);
-//            this.tmp_features_array_.splice(idx,1);
-//        }
+    for (var j = 0; j < this.features_to_remove_.length; j++) {
+        this.source_.removeFeature(this.features_to_remove_[j]);
     }
   }
 
@@ -244,7 +194,7 @@ class PolygonBrush extends Draw {
             const currentFeature = this.tmp_features_array_[i];
             const geometry = currentFeature.getGeometry();
             var current_poly = turfPolygon(geometry.getCoordinates())
-            var features_to_remove = [];
+            this.features_to_remove_ = [];
 
             for (var j = 0; j < this.source_.getFeatures().length; j++) {
                 var compareFeature = this.source_.getFeatures()[j];
@@ -253,11 +203,11 @@ class PolygonBrush extends Draw {
                     var comparePoly = turfPolygon(compareCoords);
                     var polygon_intersection = intersect(current_poly,comparePoly);
                     if (polygon_intersection !== null) {
-                        features_to_remove.push(compareFeature);
+                        this.features_to_remove_.push(compareFeature);
                     }
                 }
             }
-            features_to_remove.forEach(function(entry) {
+            this.features_to_remove_.forEach(function(entry) {
                 current_poly = union(current_poly, turfPolygon(entry.getGeometry().getCoordinates()));
             })
             if (current_poly.geometry.type == 'MultiPolygon') {
@@ -265,125 +215,8 @@ class PolygonBrush extends Draw {
             }
             currentFeature.getGeometry().setCoordinates(current_poly.geometry["coordinates"]);
 
-            for (var k = 0; k < features_to_remove.length; k++) {
-                this.source_.removeFeature(features_to_remove[k]);
-            }
-        }
-        this.tmp_features_array_ = [];
-    }
-
-  finishErasing() {
-    const sketchFeature = this.abortDrawing_();
-    if (!sketchFeature) {
-      return;
-    }
-    const geometry = fromCircle(sketchFeature.getGeometry());
-    sketchFeature.setGeometry(geometry);
-
-    var current_poly = turfPolygon(geometry.getCoordinates())
-
-    // First dispatch event to allow full set up of feature
-    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
-
-    // Then insert feature
-    if (this.features_) {
-      this.features_.push(sketchFeature);
-    }
-    if (this.source_) {
-      this.source_.addFeature(sketchFeature);
-//      if (this.drawmode_) {
-//        this.tmp_features_array_.push(sketchFeature);
-//        var stl = new Style();
-//        var strk = new Stroke()
-//        strk.setColor()
-//        stl.setStroke()
-//        this.sketchFeature_.set
-//      }
-    }
-
-    var features_to_remove = [];
-    for (var i = 0; i < this.source_.getFeatures().length; i++) {
-        var compareFeature = this.source_.getFeatures()[i];
-        if (compareFeature != sketchFeature) {
-            var compareCoords = compareFeature.getGeometry().getCoordinates();
-            var comparePoly = turfMultiPolygon([compareCoords]);
-            var polygon_intersection = intersect(current_poly,comparePoly);
-            if (polygon_intersection !== null) {
-                features_to_remove.push(compareFeature);
-            }
-        }
-    }
-
-    for (var l = 0; l < features_to_remove.length; l++) {
-        var entry = features_to_remove[l];
-        var containsPoly1 = turfPolygon(entry.getGeometry().getCoordinates())
-//        var containsPoly2 = turfPolygon(current_poly.geometry.coordinates[0])
-        if (!booleanContains(containsPoly1,current_poly)) {
-            var intersection_poly = turfMultiPolygon([entry.getGeometry().getCoordinates()])
-            current_poly = difference(intersection_poly,turfMultiPolygon([current_poly.geometry.coordinates]));
-            if (current_poly == null) {
-                this.source_.removeFeature(entry);
-                break;
-            }
-            else {
-                if (current_poly.geometry.type == 'MultiPolygon') {
-                    console.log(current_poly)
-                    for (var m = 0; m < current_poly.geometry.coordinates.length; m++) {
-                        var coords = current_poly.geometry.coordinates[m]
-                        console.log(coords)
-                        console.log("First and last:",coords[0][0],coords[0][coords.length-1])
-                        if (coords[0][0] != coords[0][coords.length-1]) {
-                            coords[0].push(coords[0]);
-                            console.log("Safety coords pushed");
-                        }
-                        this.source_.addFeature(new Feature(new Polygon(coords)))
-                    }
-                    this.source_.removeFeature(entry);
-                }
-                else { //TODO get the following inside a function
-                    var coords = current_poly.geometry.coordinates
-                    console.log(coords)
-                    console.log("First and last:",coords[0][0],coords[0][coords.length-1])
-                    if (coords[0][0] != coords[0][coords.length-1]) {
-                        coords[0].push(coords[0]);
-                        console.log("Safety coords pushed");
-                    }
-                    entry.getGeometry().setCoordinates(coords);
-                }
-            }
-        }
-    }
-    this.source_.removeFeature(sketchFeature);
-  }
-
-    mergeNewPolygon() {
-        for (var i = 0; i < this.tmp_features_array_.length; i++) {
-            const currentFeature = this.tmp_features_array_[i];
-            const geometry = currentFeature.getGeometry();
-            var current_poly = turfPolygon(geometry.getCoordinates())
-            var features_to_remove = [];
-
-            for (var j = 0; j < this.source_.getFeatures().length; j++) {
-                var compareFeature = this.source_.getFeatures()[j];
-                if (compareFeature != currentFeature) {
-                    var compareCoords = compareFeature.getGeometry().getCoordinates();
-                    var comparePoly = turfPolygon(compareCoords);
-                    var polygon_intersection = intersect(current_poly,comparePoly);
-                    if (polygon_intersection !== null) {
-                        features_to_remove.push(compareFeature);
-                    }
-                }
-            }
-            features_to_remove.forEach(function(entry) {
-                current_poly = union(current_poly, turfPolygon(entry.getGeometry().getCoordinates()));
-            })
-            if (current_poly.geometry.type == 'MultiPolygon') {
-                current_poly = turfPolygon(current_poly.geometry.coordinates[0])
-            }
-            currentFeature.getGeometry().setCoordinates(current_poly.geometry["coordinates"]);
-
-            for (var k = 0; k < features_to_remove.length; k++) {
-                this.source_.removeFeature(features_to_remove[k]);
+            for (var k = 0; k < this.features_to_remove_.length; k++) {
+                this.source_.removeFeature(this.features_to_remove_[k]);
             }
         }
         this.tmp_features_array_ = [];
@@ -394,7 +227,7 @@ class PolygonBrush extends Draw {
             const currentFeature = this.tmp_features_array_[i];
             const geometry = currentFeature.getGeometry();
             var current_poly = turfPolygon(geometry.getCoordinates())
-            var features_to_remove = [];
+            this.features_to_remove_ = [];
 
             for (var j = 0; j < this.source_.getFeatures().length; j++) {
                 var compareFeature = this.source_.getFeatures()[j];
@@ -403,11 +236,11 @@ class PolygonBrush extends Draw {
                     var comparePoly = turfPolygon(compareCoords);
                     var polygon_intersection = intersect(current_poly,comparePoly);
                     if (polygon_intersection !== null) {
-                        features_to_remove.push(compareFeature);
+                        this.features_to_remove_.push(compareFeature);
                     }
                 }
             }
-            features_to_remove.forEach(function(entry) {
+            this.features_to_remove_.forEach(function(entry) {
                 current_poly = difference(turfPolygon(entry.getGeometry().getCoordinates()),current_poly);
             })
             if (current_poly.geometry.type == 'MultiPolygon') {
@@ -415,11 +248,21 @@ class PolygonBrush extends Draw {
             }
             currentFeature.getGeometry().setCoordinates(current_poly.geometry["coordinates"]);
 
-            for (var k = 0; k < features_to_remove.length; k++) {
-                this.source_.removeFeature(features_to_remove[k]);
+            for (var k = 0; k < this.features_to_remove_.length; k++) {
+                this.source_.removeFeature(this.features_to_remove_[k]);
             }
         }
         this.tmp_features_array_ = [];
+    }
+
+    fixLastCoordinate(coords) {
+//        console.log(coords)
+//        console.log("First and last:",coords[0][0],coords[0][coords.length-1])
+        if (coords[0][0] != coords[0][coords.length-1]) {
+            coords[0].push(coords[0]);
+//            console.log("Safety coords pushed");
+        }
+        return coords;
     }
 }
 

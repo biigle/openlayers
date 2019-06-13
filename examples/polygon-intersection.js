@@ -1,6 +1,7 @@
 import Map from '../src/ol/Map.js';
 import View from '../src/ol/View.js';
-import PolygonBrush from '../src/ol/interaction/PolygonBrush.js';
+import PolygonAdd from '../src/ol/interaction/PolygonAdd.js';
+import PolygonSubtract from '../src/ol/interaction/PolygonSubtract.js';
 import {Tile as TileLayer, Vector as VectorLayer} from '../src/ol/layer.js';
 import {OSM, Vector as VectorSource} from '../src/ol/source.js';
 
@@ -23,20 +24,34 @@ const map = new Map({
   })
 });
 
-let polygonBrush = new PolygonBrush({
-  source: source,
-  type: 'Point'
-});
-map.addInteraction(polygonBrush);
+const typeSelect = document.getElementById('type');
 
-//let draw; // global so we can remove it later
-//function addInteraction() {
-//  const value = typeSelect.value;
-//  if (value !== 'None') {
-//    draw = new Draw({
-//      source: source,
-//      type: typeSelect.value
-//    });
-//    map.addInteraction(draw);
-//  }
-//}
+let polygonBrush; // global so we can remove it later
+function addInteraction() {
+  const value = typeSelect.value;
+  if (value === 'Add') {
+    polygonBrush = new PolygonAdd({
+      source: source,
+      type: 'Point'
+    });
+    map.addInteraction(polygonBrush);
+  }
+  else {
+    polygonBrush = new PolygonSubtract({
+      source: source,
+      type: 'Point'
+    });
+    map.addInteraction(polygonBrush);
+  }
+}
+
+
+/**
+ * Handle change event.
+ */
+typeSelect.onchange = function() {
+  map.removeInteraction(polygonBrush);
+  addInteraction();
+};
+
+addInteraction();
