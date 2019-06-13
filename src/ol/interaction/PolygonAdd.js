@@ -61,13 +61,11 @@ class PolygonAdd extends PolygonBrush {
         if (compareFeature != sketchFeature) {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
             var comparePoly = turfPolygon(compareCoords);
-            var polygon_intersection = intersect(currentPolygon,comparePoly);
-            if (booleanOverlap(currentPolygon,comparePoly) || booleanContains(currentPolygon,comparePoly)) {
+            if (booleanOverlap(currentPolygon,comparePoly) 
+                || booleanContains(currentPolygon,comparePoly)
+                || booleanContains(comparePoly,currentPolygon)) {
                 this.intersect_features_.push(compareFeature);
             }
-//            if (polygon_intersection !== null) {
-//                this.intersect_features_.push(compareFeature);
-//            }
         }
 //        console.log("All features:",this.source_.getFeatures())
 //        console.log("Ft to remove",this.intersect_features_)
@@ -79,6 +77,17 @@ class PolygonAdd extends PolygonBrush {
     })
     if (currentPolygon.geometry.type == 'MultiPolygon') {
         currentPolygon = turfPolygon(currentPolygon.geometry.coordinates[0])
+//        //TODO remove all features that are inside the new multiPolygon. THIS IS NOT WORKING BY NOW
+//        for (var k = 0; k < this.source_.getFeatures.length; k++) {
+//            var entry = this.source_.getFeatures()[k];
+//            if (booleanContains(
+//                  turfPolygon(entry.getGeometry().getCoordinates()),
+//                  currentPolygon,
+//               )) {
+//                console.log("COntained another feature")
+//                this.intersect_features_.push(entry);
+//            }
+//        }
     }
     var coords = currentPolygon.geometry.coordinates
     coords = this.fixLastCoordinate(coords);

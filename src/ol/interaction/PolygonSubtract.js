@@ -60,16 +60,14 @@ class PolygonSubtract extends PolygonBrush {
         var compareFeature = this.source_.getFeatures()[i];
         if (compareFeature != sketchFeature) {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
-//            var comparePoly = turfMultiPolygon([compareCoords]);
-            var comparePoly = turfPolygon(compareCoords);
-//            try {
-//                var polygon_intersection = intersect(sketchPolygon,comparePoly);
-//            }
-//            catch (error) {
-//                console.log(error)
-//                console.log(sketchPolygon)
-//                console.log(comparePoly)
-//            }
+            try {
+                var comparePoly = turfPolygon(compareCoords);
+            }
+            catch (error) {
+                console.log("Error:",error)
+                console.log("Coords:",compareCoords)
+                console.log(compareCoords[0],compareCoords[compareCoords.length-1])
+            }
             if (booleanOverlap(sketchPolygon,comparePoly) || booleanContains(sketchPolygon,comparePoly)) {
                 this.intersect_features_.push(compareFeature);
             }
