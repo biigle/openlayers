@@ -60,16 +60,27 @@ class PolygonSubtract extends PolygonBrush {
         var compareFeature = this.source_.getFeatures()[i];
         if (compareFeature != sketchFeature) {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
+//            if (compareCoords[0] == compareCoords[compareCoords.length-1]) {
             try {
+//                console.log("All features:",this.source_.getFeatures())
+//                console.log("CompareFeature:",compareFeature)
+//                console.log("Coords:",compareCoords)
+//                console.log(compareCoords[0],compareCoords[compareCoords.length-1])
+//                console.log("Extent:",compareFeature.getGeometry().getExtent())
                 var comparePoly = turfPolygon(compareCoords);
+                if (booleanOverlap(sketchPolygon,comparePoly) || booleanContains(sketchPolygon,comparePoly)) {
+                    this.intersect_features_.push(compareFeature);
+                }
             }
-            catch (error) {
+            catch(error) {
+                
+                console.log("All features:",this.source_.getFeatures())
+                console.log("CompareFeature:",compareFeature)
                 console.log("Error:",error)
+//                console.log("Error: first and last coord not equivalent")
                 console.log("Coords:",compareCoords)
                 console.log(compareCoords[0],compareCoords[compareCoords.length-1])
-            }
-            if (booleanOverlap(sketchPolygon,comparePoly) || booleanContains(sketchPolygon,comparePoly)) {
-                this.intersect_features_.push(compareFeature);
+                console.log("Extent:",compareFeature.getGeometry().getExtent())
             }
         }
     }
@@ -89,14 +100,17 @@ class PolygonSubtract extends PolygonBrush {
                     console.log(intersectMultiPolygon)
                     for (var m = 0; m < intersectMultiPolygon.geometry.coordinates.length; m++) {
                         var coords = intersectMultiPolygon.geometry.coordinates[m]
-                        coords = this.fixLastCoordinate(coords);
-                        this.source_.addFeature(new Feature(new Polygon(coords)))
+//                        coords = this.fixLastCoordinate(coords);
+                        var featureToAdd = new Feature(new Polygon(coords));
+                        console.log("Add: extent: ",featureToAdd.getGeometry().getExtent())
+                        console.log("Add: coords: ",featureToAdd.getGeometry().getCoordinates())
+                        this.source_.addFeature(featureToAdd);
                     }
                     this.source_.removeFeature(intersectFeature);
                 }
                 else {
                     var coords = intersectMultiPolygon.geometry.coordinates
-                    coords = this.fixLastCoordinate(coords);
+//                    coords = this.fixLastCoordinate(coords);
                     intersectFeature.getGeometry().setCoordinates(coords);
                 }
             }

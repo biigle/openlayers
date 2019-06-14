@@ -21,11 +21,91 @@ import {fromCircle} from '../geom/Polygon.js'
 import Style from '../style/Style.js'
 import Stroke from '../style/Stroke.js'
 
-class PolygonAdd extends PolygonBrush {
+class PolygonAdd extends Draw {
 
   constructor(options) {
 
     super(options)
+    this.circleRadius_ = 10000  //TODO better value
+    this.drawmode_ = false;
+    this.newFeature = null;
+  }
+
+  handleEvent(event) {
+    let pass = super.handleEvent(event);
+    const type = event.type;
+    const btn = event.originalEvent.button;
+    if (shiftKeyOnly(event) && (type === EventType.WHEEL || type === EventType.MOUSEWHEEL)) {
+      pass = false; 
+      this.updateSketchPointRadius_(event);
+    }
+    if (btn == 0 && (type === MapBrowserEventType.POINTERDOWN)) {
+      pass = false;
+      this.drawmode_ = true;
+      this.createOrUpdateSketchPoint_(event);
+    }
+    if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
+      pass = false;
+      this.startDrawing_(event);
+      this.finishDrawing();
+      this.createOrUpdateSketchPoint_(event);
+    }
+    if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
+      this.startDrawing_(event);
+      this.finishDrawing();
+      this.drawmode_ = false;
+      this.createOrUpdateSketchPoint_(event);
+      //TODO draw new polygons in one? If not, maybe dispatchEvent on doubleclick or so?
+      //Possible problem: If two features are not connected, we have to submit them all
+      //Or just the first/largest...
+      this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, this.newFeature));
+      this.newFeature = null;
+    }
+//    if (this.drawmode_ && type === MapBrowserEventType.DOUBLECLICK) {
+
+//    }
+    return pass
+  }
+
+  handleUpEvent(event) {
+    //this is overridden because nothing should happen here
+  }
+
+  /**
+   * @param {import("../MapBrowserEvent.js").default} event Event.
+   * @private
+   */
+  createOrUpdateSketchPoint_(event) {
+    const coordinates = event.coordinate.slice();
+    if (!this.sketchPoint_) {
+      this.sketchPoint_ = new Feature(new Circle(coordinates,this.circleRadius_));
+      this.updateSketchFeatures_();
+    } else {
+      const sketchPointGeom = /** @type {Circle} */ (this.sketchPoint_.getGeometry());
+      sketchPointGeom.setCenter(coordinates);
+    }
+  }
+
+  updateSketchPointRadius_(event) {
+    if (this.sketchPoint_) {
+      const sketchPointGeom = /** @type {Circle} */ (this.sketchPoint_.getGeometry());
+      if (event.originalEvent.deltaY > 0) {
+        this.circleRadius_ = sketchPointGeom.getRadius() + 1000;  //TODO better value
+      }
+      if (event.originalEvent.deltaY < 0) {
+        this.circleRadius_ = sketchPointGeom.getRadius() - 1000;  //TODO better value
+      }
+      sketchPointGeom.setRadius(this.circleRadius_);
+    }
+  }
+
+  startDrawing_(event) {
+    const start = event.coordinate;
+    this.finishCoordinate_ = start;
+    this.sketchCoords_ = start.slice();
+
+    const geometry = new Circle(this.sketchCoords_,this.circleRadius_);
+    this.sketchFeature_ = new Feature(geometry);
   }
 
   /**
@@ -48,53 +128,31 @@ class PolygonAdd extends PolygonBrush {
     this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
 
     // Then insert feature
-    if (this.features_) {
-      this.features_.push(sketchFeature);
-    }
-    if (this.source_) {
-      this.source_.addFeature(sketchFeature);
-    }
-
-    this.intersect_features_ = [];
-    for (var i = 0; i < this.source_.getFeatures().length; i++) {
-        var compareFeature = this.source_.getFeatures()[i];
-        if (compareFeature != sketchFeature) {
-            var compareCoords = compareFeature.getGeometry().getCoordinates();
-            var comparePoly = turfPolygon(compareCoords);
-            if (booleanOverlap(currentPolygon,comparePoly) 
-                || booleanContains(currentPolygon,comparePoly)
-                || booleanContains(comparePoly,currentPolygon)) {
-                this.intersect_features_.push(compareFeature);
-            }
+    if (this.newFeature == null) {
+        if (this.features_) {
+          this.features_.push(sketchFeature);
         }
-//        console.log("All features:",this.source_.getFeatures())
-//        console.log("Ft to remove",this.intersect_features_)
-//        console.log("tmp ft",this.tmp_features_array_)
+        if (this.source_) {
+          this.source_.addFeature(sketchFeature);
+        }
+        this.newFeature = sketchFeature;
     }
 
-    this.intersect_features_.forEach(function(entry) {
-        currentPolygon = union(currentPolygon, turfPolygon(entry.getGeometry().getCoordinates()));
-    })
-    if (currentPolygon.geometry.type == 'MultiPolygon') {
-        currentPolygon = turfPolygon(currentPolygon.geometry.coordinates[0])
-//        //TODO remove all features that are inside the new multiPolygon. THIS IS NOT WORKING BY NOW
-//        for (var k = 0; k < this.source_.getFeatures.length; k++) {
-//            var entry = this.source_.getFeatures()[k];
-//            if (booleanContains(
-//                  turfPolygon(entry.getGeometry().getCoordinates()),
-//                  currentPolygon,
-//               )) {
-//                console.log("COntained another feature")
-//                this.intersect_features_.push(entry);
-//            }
-//        }
-    }
-    var coords = currentPolygon.geometry.coordinates
-    coords = this.fixLastCoordinate(coords);
-    sketchFeature.getGeometry().setCoordinates(coords);
-
-    for (var j = 0; j < this.intersect_features_.length; j++) {
-        this.source_.removeFeature(this.intersect_features_[j]);
+    if (this.newFeature != sketchFeature) {
+        var compareCoords = this.newFeature.getGeometry().getCoordinates();
+        var comparePoly = turfPolygon(compareCoords);
+        if (booleanOverlap(currentPolygon,comparePoly)) {
+            this.source_.removeFeature(this.newFeature);
+            console.log("Overlap")
+            currentPolygon = union(currentPolygon,comparePoly);
+            if (currentPolygon.geometry.type == 'MultiPolygon') {
+                currentPolygon = turfPolygon(currentPolygon.geometry.coordinates[0])
+            }
+            var coords = currentPolygon.geometry.coordinates
+            sketchFeature.getGeometry().setCoordinates(coords);
+            this.source_.addFeature(sketchFeature);
+            this.newFeature = sketchFeature;
+        }
     }
   }
 }

@@ -26,6 +26,7 @@ class PolygonBrush extends Draw {
     super(options)
     this.circleRadius_ = 10000  //TODO better value
     this.drawmode_ = false;
+    this.newFeature = null;
     this.tmp_features_array_ = [];
     this.intersect_features_ = [];
   }
@@ -41,16 +42,20 @@ class PolygonBrush extends Draw {
     if (btn == 0 && (type === MapBrowserEventType.POINTERDOWN)) {
       pass = false;
       this.drawmode_ = true;
+      this.createOrUpdateSketchPoint_(event);
     }
     if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
       pass = false;
       this.startDrawing_(event);
       this.finishDrawing();
+      this.createOrUpdateSketchPoint_(event);
     }
     if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
       this.startDrawing_(event);
       this.finishDrawing();
       this.drawmode_ = false;
+      this.createOrUpdateSketchPoint_(event);
+      this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, this.newFeature));
     }
     return pass
   }
