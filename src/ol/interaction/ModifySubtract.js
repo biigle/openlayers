@@ -150,7 +150,7 @@ export class ModifyEvent extends Event {
  * @fires ModifyEvent
  * @api
  */
-class Modify extends PointerInteraction {
+class ModifySubtract extends Modify {
   /**
    * @param {Options} options Options.
    */

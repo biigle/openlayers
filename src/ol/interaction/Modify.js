@@ -41,7 +41,7 @@ const CIRCLE_CIRCUMFERENCE_INDEX = 1;
 /**
  * @enum {string}
  */
-const ModifyEventType = {
+export const ModifyEventType = {
   /**
    * Triggered upon feature modification start
    * @event ModifyEvent#modifystart
