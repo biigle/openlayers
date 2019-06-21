@@ -12,14 +12,13 @@ import {DrawEventType} from './Draw.js';
 import createRegularPolygon from './Draw.js';
 import Circle from '../geom/Circle.js';
 import Feature from '../Feature.js';
+import Polygon from '../geom/Polygon.js'
 import MapBrowserEventType from '../MapBrowserEventType.js';
 import EventType from '../events/EventType.js';
 import {shiftKeyOnly,altShiftKeysOnly,altKeyOnly} from '../events/condition.js';
 import {TRUE, FALSE} from '../functions.js';
-import Polygon from '../geom/Polygon.js'
-import {fromCircle} from '../geom/Polygon.js'
-import Style from '../style/Style.js'
-import Stroke from '../style/Stroke.js'
+import {fromCircle} from '../geom/Polygon.js';
+import {unionCoords} from './polygonInteractionHelpers.js';
 
 class PolygonAdd extends Draw {
 
@@ -142,11 +141,7 @@ class PolygonAdd extends Draw {
         var compareCoords = this.newFeature.getGeometry().getCoordinates();
         var comparePoly = turfPolygon(compareCoords);
         if (booleanOverlap(currentPolygon,comparePoly)) {
-            currentPolygon = union(currentPolygon,comparePoly);
-            if (currentPolygon.geometry.type == 'MultiPolygon') {
-                currentPolygon = turfPolygon(currentPolygon.geometry.coordinates[0])
-            }
-            var coords = currentPolygon.geometry.coordinates
+            var coords = unionCoords(currentPolygon,comparePoly);
             this.newFeature.getGeometry().setCoordinates(coords);
         }
     }

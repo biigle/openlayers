@@ -6,7 +6,7 @@ import {Tile as TileLayer, Vector as VectorLayer} from '../src/ol/layer.js';
 import {OSM, Vector as VectorSource} from '../src/ol/source.js';
 import {Circle as CircleStyle, Fill, Stroke, Style} from '../src/ol/style.js';
 import ModifyAdd from '../src/ol/interaction/ModifyAdd.js'
-//import ModifySubtract from '../src/ol/interaction/ModifySubtract.js'
+import ModifySubtract from '../src/ol/interaction/ModifySubtract.js'
 //import Modify from '../src/ol/interaction/Modify.js'
 
 const raster = new TileLayer({
@@ -59,12 +59,13 @@ function addInteractions() {
   }
   if (value === 'ModifyAdd') {
     modify = new ModifyAdd({source: source});
-//    snap = new Snap({source: source});
-//    map.addInteraction(snap);
     map.addInteraction(modify);
   }
   if (value === 'ModifySubtract') {
-    //TODO another modify interaction
+    modify = new ModifySubtract({source: source});
+//    snap = new Snap({source: source});
+//    map.addInteraction(snap);
+    map.addInteraction(modify);
   }
 }
 

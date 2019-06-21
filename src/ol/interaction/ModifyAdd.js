@@ -33,7 +33,7 @@ import {shiftKeyOnly,altShiftKeysOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js'
 import {DrawEvent} from './Draw.js';
 import {DrawEventType} from './Draw.js';
-
+import {unionCoords} from './polygonInteractionHelpers.js';
 
 /**
  * The segment index assigned to a circle's center when
@@ -134,16 +134,6 @@ class ModifyAdd extends Modify {
      * @type {VectorLayer}
      * @private
      */
-//    this.overlay_ = new VectorLayer({
-//      source: new VectorSource({
-//        useSpatialIndex: false,
-//        wrapX: !!options.wrapX
-//      }),
-//      style: options.style ? options.style :
-//        getDefaultStyleFunction(),
-//      updateWhileAnimating: true,
-//      updateWhileInteracting: true
-//    });
     this.overlay_ = new VectorLayer({
       source: new VectorSource({
         useSpatialIndex: false,
@@ -179,18 +169,15 @@ class ModifyAdd extends Modify {
   createOrUpdateVertexFeature_(coordinates) {
     let vertexFeature = this.vertexFeature_;
     if (!vertexFeature) {
-      vertexFeature = new Feature(new Point(coordinates));
-//      vertexFeature = new Feature(new Circle(coordinates,this.circleRadius_));
+      vertexFeature = new Feature(new Circle(coordinates,this.circleRadius_));
       this.vertexFeature_ = vertexFeature;
       /** @type {VectorSource} */ (this.overlay_.getSource()).addFeature(vertexFeature);
     } else {
       const geometry = /** @type {Point} */ (vertexFeature.getGeometry());
-      geometry.setCoordinates(coordinates);
-//      geometry.setCenter(coordinates);
+      geometry.setCenter(coordinates);
     }
     return vertexFeature;
   }
-
 
   /**
    * Redraw the sketch features.
@@ -251,36 +238,29 @@ class ModifyAdd extends Modify {
     if (btn == 0 && (type === MapBrowserEventType.POINTERDOWN)) {
       pass = false;
       this.drawmode_ = true;
-      //TODO drawing here ok?
       this.startDrawing_(event);
       this.finishDrawing();
       this.createOrUpdateSketchPoint_(event);
-      this.createOrUpdateVertexFeature_(event);
     }
     if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
       pass = false;
       this.startDrawing_(event);
       this.finishDrawing();
       this.createOrUpdateSketchPoint_(event);
-      this.createOrUpdateVertexFeature_(event);
     }
     if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
       this.startDrawing_(event);
       this.finishDrawing();
       this.drawmode_ = false;
       this.createOrUpdateSketchPoint_(event);
-      this.createOrUpdateVertexFeature_(event);
-      //TODO draw new polygons in one? If not, maybe dispatchEvent on doubleclick or so?
-      //Possible problem: If two features are not connected, we have to submit them all
-      //Or just the first/largest...
       //TODO dispatch other event
-      this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, this.modifyFeature_));
+      this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
       this.modifyFeature_ = null;
     }
     if (this.drawmode_ && type === MapBrowserEventType.DOUBLECLICK) {
 
     }
-//    this.updateSketchFeatures_();
+    this.createOrUpdateSketchPoint_(event);
     return pass
   }
 
@@ -310,8 +290,9 @@ class ModifyAdd extends Modify {
 
     var currentPolygon = turfPolygon(geometry.getCoordinates())
 
+    //TODO dispatch event here or in the handler above? Then an event must be passed!
     // First dispatch event to allow full set up of feature
-    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
+//    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
 
     // Then insert feature
     if (this.source_) {
@@ -328,7 +309,8 @@ class ModifyAdd extends Modify {
             var comparePoly = turfPolygon(compareCoords);
             if (booleanOverlap(currentPolygon,comparePoly)) {
                 this.modifyFeature_ = compareFeature;
-                this.setUnionCoords(currentPolygon,comparePoly);
+                var coords = unionCoords(currentPolygon,comparePoly);
+                this.modifyFeature_.getGeometry().setCoordinates(coords);
             }
           }
         }
@@ -337,20 +319,12 @@ class ModifyAdd extends Modify {
         var compareCoords = this.modifyFeature_.getGeometry().getCoordinates();
         var comparePoly = turfPolygon(compareCoords);
         if (booleanOverlap(currentPolygon,comparePoly)) {
-            this.setUnionCoords(currentPolygon,comparePoly);
+            var coords = unionCoords(currentPolygon,comparePoly);
+            this.modifyFeature_.getGeometry().setCoordinates(coords);
         }
     }
-
   }
 
-  setUnionCoords(currentPolygon,comparePolygon) {
-    var unionPolygon = union(currentPolygon,comparePolygon);
-    if (unionPolygon.geometry.type == 'MultiPolygon') {
-        unionPolygon = turfPolygon(unionPolygon.geometry.coordinates[0]);
-    }
-    var coords = unionPolygon.geometry.coordinates;
-    this.modifyFeature_.getGeometry().setCoordinates(coords);
-  }
 
   abortDrawing_() {
     this.finishCoordinate_ = null;
