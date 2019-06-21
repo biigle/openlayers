@@ -154,6 +154,8 @@ class ModifyAdd extends Modify {
 
     this.sketchFeature_ = null;
 
+    this.modifyFeature_ = null;
+
     /**
      * Segments intersecting {@link this.vertexFeature_} by segment uid.
      * @type {Object<string, boolean>}
@@ -272,7 +274,6 @@ class ModifyAdd extends Modify {
 
     this.circleRadius_ = 10000;  //TODO better value
     this.drawmode_ = false;
-    this.newFeature = null;
 
   }
 
@@ -507,6 +508,9 @@ class ModifyAdd extends Modify {
     if (btn == 0 && (type === MapBrowserEventType.POINTERDOWN)) {
       pass = false;
       this.drawmode_ = true;
+      //TODO drawing here ok?
+      this.startDrawing_(event);
+      this.finishDrawing();
       this.createOrUpdateSketchPoint_(event);
     }
     if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
@@ -524,8 +528,8 @@ class ModifyAdd extends Modify {
       //Possible problem: If two features are not connected, we have to submit them all
       //Or just the first/largest...
       //TODO dispatch other event
-      this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, this.newFeature));
-      this.newFeature = null;
+      this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, this.modifyFeature_));
+      this.modifyFeature_ = null;
     }
     if (this.drawmode_ && type === MapBrowserEventType.DOUBLECLICK) {
 
@@ -574,32 +578,45 @@ class ModifyAdd extends Modify {
     this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
 
     // Then insert feature
-    if (this.newFeature == null) {
-        if (this.features_) {
-          this.features_.push(sketchFeature);
-        }
-        if (this.source_) {
-          this.source_.addFeature(sketchFeature);
-        }
-        this.newFeature = sketchFeature;
-    }
+//    if (this.features_) {
+//      this.features_.push(sketchFeature);
+//    }
+//    if (this.source_) {
+//      this.source_.addFeature(sketchFeature);
+//    }
 
-    if (this.newFeature != sketchFeature) {
-        var compareCoords = this.newFeature.getGeometry().getCoordinates();
+    //TODO skip changes if modifyFeature_ contains sketchFeature_ other completely
+    //set coords of sketchFeature if sketchFeature_ contains modifyFeature_ completely
+    if (this.modifyFeature_ == null) {
+        for (var i = 0; i < this.features_.getLength(); i++) {
+          var compareFeature = this.features_.getArray()[i];
+          if (compareFeature != sketchFeature) {
+            var compareCoords = compareFeature.getGeometry().getCoordinates();
+            var comparePoly = turfPolygon(compareCoords);
+            if (booleanOverlap(currentPolygon,comparePoly)) {
+                this.modifyFeature_ = compareFeature;
+                this.setUnionCoords(currentPolygon,comparePoly);
+            }
+          }
+        }
+    }
+    else {
+        var compareCoords = this.modifyFeature_.getGeometry().getCoordinates();
         var comparePoly = turfPolygon(compareCoords);
         if (booleanOverlap(currentPolygon,comparePoly)) {
-            this.source_.removeFeature(this.newFeature);
-            console.log("Overlap")
-            currentPolygon = union(currentPolygon,comparePoly);
-            if (currentPolygon.geometry.type == 'MultiPolygon') {
-                currentPolygon = turfPolygon(currentPolygon.geometry.coordinates[0])
-            }
-            var coords = currentPolygon.geometry.coordinates
-            sketchFeature.getGeometry().setCoordinates(coords);
-            this.source_.addFeature(sketchFeature);
-            this.newFeature = sketchFeature;
+            this.setUnionCoords(currentPolygon,comparePoly);
         }
     }
+
+  }
+
+  setUnionCoords(currentPolygon,comparePolygon) {
+    var unionPolygon = union(currentPolygon,comparePolygon);
+    if (unionPolygon.geometry.type == 'MultiPolygon') {
+        unionPolygon = turfPolygon(unionPolygon.geometry.coordinates[0]);
+    }
+    var coords = unionPolygon.geometry.coordinates;
+    this.modifyFeature_.getGeometry().setCoordinates(coords);
   }
 
   abortDrawing_() {
