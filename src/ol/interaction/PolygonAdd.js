@@ -142,16 +142,12 @@ class PolygonAdd extends Draw {
         var compareCoords = this.newFeature.getGeometry().getCoordinates();
         var comparePoly = turfPolygon(compareCoords);
         if (booleanOverlap(currentPolygon,comparePoly)) {
-            this.source_.removeFeature(this.newFeature);
-            console.log("Overlap")
             currentPolygon = union(currentPolygon,comparePoly);
             if (currentPolygon.geometry.type == 'MultiPolygon') {
                 currentPolygon = turfPolygon(currentPolygon.geometry.coordinates[0])
             }
             var coords = currentPolygon.geometry.coordinates
-            sketchFeature.getGeometry().setCoordinates(coords);
-            this.source_.addFeature(sketchFeature);
-            this.newFeature = sketchFeature;
+            this.newFeature.getGeometry().setCoordinates(coords);
         }
     }
   }
