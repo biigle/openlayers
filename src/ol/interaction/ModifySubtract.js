@@ -257,6 +257,7 @@ class ModifySubtract extends Modify {
       this.createOrUpdateSketchPoint_(event);
       //TODO dispatch other event
       this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
+//      console.log(this.features_.getArray())
       this.modifyFeature_ = null;
     }
     if (this.drawmode_ && type === MapBrowserEventType.DOUBLECLICK) {
@@ -295,6 +296,7 @@ class ModifySubtract extends Modify {
     //TODO dispatch event here or in the handler above? Then an event must be passed!
     // First dispatch event to allow full set up of feature
 //    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
+//    this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
 
     // Then insert feature
     if (this.source_) {
@@ -310,10 +312,25 @@ class ModifySubtract extends Modify {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
             var comparePoly = turfPolygon(compareCoords);
             if (booleanOverlap(currentPolygon,comparePoly)) {
+//                console.log("Overlap, but first case")
                 this.modifyFeature_ = compareFeature;
                 var coords = differenceCoords(comparePoly,currentPolygon);
                 this.modifyFeature_.getGeometry().setCoordinates(coords);
             }
+            if (booleanContains(currentPolygon,comparePoly)) {
+                //TODO is it enough to remove the feature from this.features_?
+//                console.log("Before, no modify feature:")
+//                console.log(this.features_)
+//    //            console.log(this.overlay_.getSource().getFeatures())
+//                console.log(compareFeature)
+                this.features_.remove(compareFeature);
+    //            this.overlay_.getSource().removeFeature(compareFeature);
+                this.modifyFeature_ = null;
+            }
+//            console.log("After:", this.features_.getArray().length)
+//            console.log(this.features_)
+//    //            console.log(this.overlay_.getSource().getFeatures())
+//            console.log("Compare feature = modify Feature?",compareFeature === this.modifyFeature_)
           }
         }
     }
@@ -321,12 +338,44 @@ class ModifySubtract extends Modify {
         var compareCoords = this.modifyFeature_.getGeometry().getCoordinates();
         var comparePoly = turfPolygon(compareCoords);
         if (booleanOverlap(currentPolygon,comparePoly)) {
+//            console.log("Overlap")
             var coords = differenceCoords(comparePoly,currentPolygon);
             this.modifyFeature_.getGeometry().setCoordinates(coords);
         }
+        else if (booleanContains(currentPolygon,comparePoly)) {
+            //TODO is it enough to remove the feature from this.features_?
+//            console.log("Before:")
+//            console.log(this.features_)
+////            console.log(this.overlay_.getSource().getFeatures())
+//            console.log(this.modifyFeature_)
+            this.features_.remove(this.modifyFeature_);
+//            this.overlay_.getSource().removeFeature(compareFeature);
+            this.modifyFeature_ = null;
+//            this.removeFeature_(compareFeature)
+        }
+//        console.log("After:",this.features_.getArray().length)
+//        console.log(this.features_)
+////            console.log(this.overlay_.getSource().getFeatures())
+//        console.log(this.modifyFeature_)
+        //TODO after removing a feature, an update for the gui is needed! how to do that?
     }
   }
 
+  /**
+   * @param {Feature} feature Feature.
+   * @private
+   */
+  removeFeature_(feature) {
+    this.removeFeatureSegmentData_(feature);
+    // Remove the vertex feature if the collection of canditate features
+    // is empty.
+    if (this.vertexFeature_ && this.features_.getLength() === 0) {
+      /** @type {VectorSource} */ (this.overlay_.getSource()).removeFeature(this.vertexFeature_);
+      this.vertexFeature_ = null;
+    }
+//    unlisten(feature, EventType.CHANGE,
+//      this.handleFeatureChange_, this);
+  }
 
   abortDrawing_() {
     this.finishCoordinate_ = null;

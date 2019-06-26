@@ -50,10 +50,10 @@ class PolygonAdd extends Draw {
       this.createOrUpdateSketchPoint_(event);
     }
     if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
-      this.startDrawing_(event);
-      this.finishDrawing();
+//      this.startDrawing_(event);
+//      this.finishDrawing();
       this.drawmode_ = false;
-      this.createOrUpdateSketchPoint_(event);
+//      this.createOrUpdateSketchPoint_(event);
       //TODO draw new polygons in one? If not, maybe dispatchEvent on doubleclick or so?
       //Possible problem: If two features are not connected, we have to submit them all
       //Or just the first/largest...

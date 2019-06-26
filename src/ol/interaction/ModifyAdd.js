@@ -249,10 +249,10 @@ class ModifyAdd extends Modify {
       this.createOrUpdateSketchPoint_(event);
     }
     if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
-      this.startDrawing_(event);
-      this.finishDrawing();
+//      this.startDrawing_(event);
+//      this.finishDrawing();
       this.drawmode_ = false;
-      this.createOrUpdateSketchPoint_(event);
+//      this.createOrUpdateSketchPoint_(event);
       //TODO dispatch other event
       this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
       this.modifyFeature_ = null;
