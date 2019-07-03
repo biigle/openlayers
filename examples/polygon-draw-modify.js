@@ -1,13 +1,12 @@
 import Map from '../src/ol/Map.js';
 import View from '../src/ol/View.js';
-import PolygonAdd from '../src/ol/interaction/PolygonAdd.js'
+import PolygonDraw from '../src/ol/interaction/PolygonDraw.js'
 import {Draw, Snap} from '../src/ol/interaction.js';
 import {Tile as TileLayer, Vector as VectorLayer} from '../src/ol/layer.js';
 import {OSM, Vector as VectorSource} from '../src/ol/source.js';
 import {Circle as CircleStyle, Fill, Stroke, Style} from '../src/ol/style.js';
 import ModifyAdd from '../src/ol/interaction/ModifyAdd.js'
 import ModifySubtract from '../src/ol/interaction/ModifySubtract.js'
-//import Modify from '../src/ol/interaction/Modify.js'
 
 const raster = new TileLayer({
   source: new OSM()
@@ -51,7 +50,7 @@ const typeSelect = document.getElementById('type');
 function addInteractions() {
   const value = typeSelect.value;
   if (value === 'Draw') {
-    draw = new PolygonAdd({
+    draw = new PolygonDraw({
       source: source,
       type: 'Point'
     });
