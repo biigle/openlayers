@@ -1,35 +1,20 @@
-import intersect from '@turf/intersect'
-import union from '@turf/union'
-import difference from '@turf/difference'
 import {polygon as turfPolygon} from '@turf/helpers'
-import {multiPolygon as turfMultiPolygon} from '@turf/helpers'
-import booleanContains from '@turf/boolean-contains'
 import booleanOverlap from '@turf/boolean-overlap'
-import {getUid} from '../util.js';
-import Collection from '../Collection.js';
-import CollectionEventType from '../CollectionEventType.js';
 import Feature from '../Feature.js';
 import MapBrowserEventType from '../MapBrowserEventType.js';
-import {equals} from '../array.js';
-import {equals as coordinatesEqual, distance as coordinateDistance, squaredDistance as squaredCoordinateDistance, squaredDistanceToSegment, closestOnSegment} from '../coordinate.js';
-import {listen, unlisten} from '../events.js';
 import Event from '../events/Event.js';
 import EventType from '../events/EventType.js';
-import {always, primaryAction, altKeyOnly, singleClick} from '../events/condition.js';
-import {boundingExtent, buffer, createOrUpdateFromCoordinate} from '../extent.js';
 import GeometryType from '../geom/GeometryType.js';
 import Point from '../geom/Point.js';
 import Circle from '../geom/Circle.js';
-import PointerInteraction from './Pointer.js';
 import VectorLayer from '../layer/Vector.js';
 import VectorSource from '../source/Vector.js';
 import VectorEventType from '../source/VectorEventType.js';
-import RBush from '../structs/RBush.js';
 import {createEditingStyle} from '../style/Style.js';
 import Modify from './Modify.js'
 import {ModifyEvent} from './Modify.js'
 import {ModifyEventType} from './Modify.js'
-import {shiftKeyOnly,altShiftKeysOnly} from '../events/condition.js';
+import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js'
 import {DrawEvent} from './Draw.js';
 import {DrawEventType} from './Draw.js';
@@ -49,65 +34,6 @@ const CIRCLE_CENTER_INDEX = 0;
  */
 const CIRCLE_CIRCUMFERENCE_INDEX = 1;
 
-
-/**
- * @typedef {Object} SegmentData
- * @property {Array<number>} [depth]
- * @property {Feature} feature
- * @property {import("../geom/SimpleGeometry.js").default} geometry
- * @property {number} [index]
- * @property {Array<import("../extent.js").Extent>} segment
- * @property {Array<SegmentData>} [featureSegments]
- */
-
-
-/**
- * @typedef {Object} Options
- * @property {import("../events/condition.js").Condition} [condition] A function that
- * takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
- * boolean to indicate whether that event will be considered to add or move a
- * vertex to the sketch. Default is
- * {@link module:ol/events/condition~primaryAction}.
- * @property {import("../events/condition.js").Condition} [deleteCondition] A function
- * that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
- * boolean to indicate whether that event should be handled. By default,
- * {@link module:ol/events/condition~singleClick} with
- * {@link module:ol/events/condition~altKeyOnly} results in a vertex deletion.
- * @property {import("../events/condition.js").Condition} [insertVertexCondition] A
- * function that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and
- * returns a boolean to indicate whether a new vertex can be added to the sketch
- * features. Default is {@link module:ol/events/condition~always}.
- * @property {number} [pixelTolerance=10] Pixel tolerance for considering the
- * pointer close enough to a segment or vertex for editing.
- * @property {import("../style/Style.js").StyleLike} [style]
- * Style used for the features being modified. By default the default edit
- * style is used (see {@link module:ol/style}).
- * @property {VectorSource} [source] The vector source with
- * features to modify.  If a vector source is not provided, a feature collection
- * must be provided with the features option.
- * @property {Collection<Feature>} [features]
- * The features the interaction works on.  If a feature collection is not
- * provided, a vector source must be provided with the source option.
- * @property {boolean} [wrapX=false] Wrap the world horizontally on the sketch
- * overlay.
- */
-
-
-/**
- * @classdesc
- * Interaction for modifying feature geometries.  To modify features that have
- * been added to an existing source, construct the modify interaction with the
- * `source` option.  If you want to modify features in a collection (for example,
- * the collection used by a select interaction), construct the interaction with
- * the `features` option.  The interaction must be constructed with either a
- * `source` or `features` option.
- *
- * By default, the interaction will allow deletion of vertices when the `alt`
- * key is pressed.  To configure the interaction with a different condition
- * for deletion, use the `deleteCondition` option.
- * @fires ModifyEvent
- * @api
- */
 class ModifyAdd extends Modify {
   /**
    * @param {Options} options Options.
@@ -115,13 +41,6 @@ class ModifyAdd extends Modify {
   constructor(options) {
 
     super(/** @type {import("./Pointer.js").Options} */ (options));
-
-    /**
-     * Editing vertex.
-     * @type {Feature}
-     * @private
-     */
-    this.vertexFeature_ = null;
 
     this.sketchFeature_ = null;
 
@@ -159,24 +78,6 @@ class ModifyAdd extends Modify {
     this.circleRadius_ = 10000;  //TODO better value
     this.drawmode_ = false;
 
-  }
-
-  /**
-   * @param {import("../coordinate.js").Coordinate} coordinates Coordinates.
-   * @return {Feature} Vertex feature.
-   * @private
-   */
-  createOrUpdateVertexFeature_(coordinates) {
-    let vertexFeature = this.vertexFeature_;
-    if (!vertexFeature) {
-      vertexFeature = new Feature(new Circle(coordinates,this.circleRadius_));
-      this.vertexFeature_ = vertexFeature;
-      /** @type {VectorSource} */ (this.overlay_.getSource()).addFeature(vertexFeature);
-    } else {
-      const geometry = /** @type {Point} */ (vertexFeature.getGeometry());
-      geometry.setCenter(coordinates);
-    }
-    return vertexFeature;
   }
 
   /**
@@ -228,7 +129,7 @@ class ModifyAdd extends Modify {
   }
 
   handleEvent(event) {
-    let pass = super.handleEvent(event);
+    let pass = true;
     const type = event.type;
     const btn = event.originalEvent.button;
     if (shiftKeyOnly(event) && (type === EventType.WHEEL || type === EventType.MOUSEWHEEL)) {
@@ -238,24 +139,18 @@ class ModifyAdd extends Modify {
     if (btn == 0 && (type === MapBrowserEventType.POINTERDOWN)) {
       pass = false;
       this.drawmode_ = true;
-      this.startDrawing_(event);
-      this.finishDrawing();
+      this.startModifying_(event);
+      this.continueModifying_();
       this.createOrUpdateSketchPoint_(event);
     }
     if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
       pass = false;
-      this.startDrawing_(event);
-      this.finishDrawing();
+      this.startModifying_(event);
+      this.continueModifying_();
       this.createOrUpdateSketchPoint_(event);
     }
     if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
-//      this.startDrawing_(event);
-//      this.finishDrawing();
-      this.drawmode_ = false;
-//      this.createOrUpdateSketchPoint_(event);
-      //TODO dispatch other event
-      this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
-      this.modifyFeature_ = null;
+      this.finishModifying_(event);
     }
     if (this.drawmode_ && type === MapBrowserEventType.DOUBLECLICK) {
 
@@ -264,7 +159,7 @@ class ModifyAdd extends Modify {
     return pass
   }
 
-  startDrawing_(event) {
+  startModifying_(event) {
     const start = event.coordinate;
     this.finishCoordinate_ = start;
     this.sketchCoords_ = start.slice();
@@ -280,7 +175,7 @@ class ModifyAdd extends Modify {
    * dispatched before inserting the feature.
    * @api
    */
-  finishDrawing() {
+  continueModifying_() {
     const sketchFeature = this.abortDrawing_();
     if (!sketchFeature) {
       return;
@@ -325,6 +220,12 @@ class ModifyAdd extends Modify {
     }
   }
 
+  finishModifying_(event) {
+      this.drawmode_ = false;
+      this.createOrUpdateSketchPoint_(event);
+      this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
+      this.modifyFeature_ = null;
+  }
 
   abortDrawing_() {
     this.finishCoordinate_ = null;
@@ -336,10 +237,6 @@ class ModifyAdd extends Modify {
       /** @type {VectorSource} */ (this.overlay_.getSource()).clear(true);
     }
     return sketchFeature;
-  }
-
-  handlePointerAtPixel_(pixel,map) {
-
   }
 
 }

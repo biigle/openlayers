@@ -1,22 +1,14 @@
-import intersect from '@turf/intersect'
-import union from '@turf/union'
-import difference from '@turf/difference'
 import {polygon as turfPolygon} from '@turf/helpers'
-import {multiPolygon as turfMultiPolygon} from '@turf/helpers'
-import booleanContains from '@turf/boolean-contains'
 import booleanOverlap from '@turf/boolean-overlap'
 import Draw from './Draw.js';
-import PolygonBrush from './PolygonBrush.js'
 import {DrawEvent} from './Draw.js';
 import {DrawEventType} from './Draw.js';
-import createRegularPolygon from './Draw.js';
 import Circle from '../geom/Circle.js';
 import Feature from '../Feature.js';
 import Polygon from '../geom/Polygon.js'
 import MapBrowserEventType from '../MapBrowserEventType.js';
 import EventType from '../events/EventType.js';
-import {shiftKeyOnly,altShiftKeysOnly,altKeyOnly} from '../events/condition.js';
-import {TRUE, FALSE} from '../functions.js';
+import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js';
 import {unionCoords} from './polygonInteractionHelpers.js';
 
@@ -41,28 +33,20 @@ class PolygonAdd extends Draw {
     if (btn == 0 && (type === MapBrowserEventType.POINTERDOWN)) {
       pass = false;
       this.drawmode_ = true;
+      this.startDrawing_(event);
+      this.continueDrawing();
       this.createOrUpdateSketchPoint_(event);
     }
     if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
       pass = false;
       this.startDrawing_(event);
-      this.finishDrawing();
+      this.continueDrawing();
       this.createOrUpdateSketchPoint_(event);
     }
     if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
-//      this.startDrawing_(event);
-//      this.finishDrawing();
-      this.drawmode_ = false;
+      this.finishDrawing();
 //      this.createOrUpdateSketchPoint_(event);
-      //TODO draw new polygons in one? If not, maybe dispatchEvent on doubleclick or so?
-      //Possible problem: If two features are not connected, we have to submit them all
-      //Or just the first/largest...
-      this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, this.newFeature));
-      this.newFeature = null;
     }
-//    if (this.drawmode_ && type === MapBrowserEventType.DOUBLECLICK) {
-
-//    }
     return pass
   }
 
@@ -113,7 +97,7 @@ class PolygonAdd extends Draw {
    * dispatched before inserting the feature.
    * @api
    */
-  finishDrawing() {
+  continueDrawing() {
     const sketchFeature = this.abortDrawing_();
     if (!sketchFeature) {
       return;
@@ -122,9 +106,6 @@ class PolygonAdd extends Draw {
     sketchFeature.setGeometry(geometry);
 
     var currentPolygon = turfPolygon(geometry.getCoordinates())
-
-    // First dispatch event to allow full set up of feature
-//    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
 
     // Then insert feature
     if (this.newFeature == null) {
@@ -145,6 +126,20 @@ class PolygonAdd extends Draw {
             this.newFeature.getGeometry().setCoordinates(coords);
         }
     }
+  }
+
+  finishDrawing() {
+      this.drawmode_ = false;
+      this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, this.newFeature));
+      this.newFeature = null;
+  }
+
+  fixLastCoordinate(coords) {
+    if (coords[0][0] != coords[0][coords.length-1]) {
+        coords[0].push(coords[0]);
+        console.log("Safety coords pushed");
+    }
+    return coords;
   }
 }
 
