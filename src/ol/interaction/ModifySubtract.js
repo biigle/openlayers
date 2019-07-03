@@ -251,8 +251,8 @@ class ModifySubtract extends Modify {
       this.createOrUpdateSketchPoint_(event);
     }
     if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
-      this.startDrawing_(event);
-      this.finishDrawing();
+//      this.startDrawing_(event);
+//      this.finishDrawing();
       this.drawmode_ = false;
       this.createOrUpdateSketchPoint_(event);
       //TODO dispatch other event
@@ -354,8 +354,8 @@ class ModifySubtract extends Modify {
 //            this.removeFeature_(compareFeature)
         }
 //        console.log("After:",this.features_.getArray().length)
-//        console.log(this.features_)
-////            console.log(this.overlay_.getSource().getFeatures())
+        console.log(this.features_)
+        console.log(this.overlay_.getSource().getFeatures())
 //        console.log(this.modifyFeature_)
         //TODO after removing a feature, an update for the gui is needed! how to do that?
     }

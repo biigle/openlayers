@@ -124,7 +124,7 @@ class PolygonAdd extends Draw {
     var currentPolygon = turfPolygon(geometry.getCoordinates())
 
     // First dispatch event to allow full set up of feature
-    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
+//    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
 
     // Then insert feature
     if (this.newFeature == null) {
