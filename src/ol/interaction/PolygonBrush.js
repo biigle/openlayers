@@ -111,14 +111,13 @@ class PolygonBrush extends Draw {
     this.createOrUpdateSketchPoint_(event);
 
     if (this.sketchFeature_) {
-      const sketchFeature = this.sketchFeature_;
-      const geometry = fromCircle(this.sketchPoint_.getGeometry());
-      var sketchPointPolygon = turfPolygon(geometry.getCoordinates())
-
-      var sketchFeaturePolygon = turfPolygon(sketchFeature.getGeometry().getCoordinates());
+      const sketchPointGeometry = fromCircle(this.sketchPoint_.getGeometry());
+      const sketchPointPolygon = turfPolygon(sketchPointGeometry.getCoordinates());
+      const sketchFeatureGeometry = this.sketchFeature_.getGeometry();
+      const sketchFeaturePolygon = turfPolygon(sketchFeatureGeometry.getCoordinates());
       if (booleanOverlap(sketchPointPolygon, sketchFeaturePolygon)) {
           var coords = union(sketchPointPolygon, sketchFeaturePolygon);
-          sketchFeature.getGeometry().setCoordinates(coords);
+          sketchFeatureGeometry.setCoordinates(coords);
       }
     }
   }
