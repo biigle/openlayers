@@ -29,6 +29,7 @@ class PolygonBrush extends Draw {
     let pass = true;
     if (shiftKeyOnly(event) && (type === EventType.WHEEL || type === EventType.MOUSEWHEEL)) {
       this.updateSketchPointRadius_(event);
+      pass = false;
     }
 
     if (event.type === MapBrowserEventType.POINTERDRAG && this.handlingDownUpSequence) {
