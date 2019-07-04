@@ -1,4 +1,5 @@
 import {polygon as turfPolygon} from '@turf/helpers'
+import GeometryType from '../geom/GeometryType.js';
 import booleanOverlap from '@turf/boolean-overlap'
 import Draw from './Draw.js';
 import {DrawEvent} from './Draw.js';
@@ -11,47 +12,55 @@ import EventType from '../events/EventType.js';
 import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js';
 import {union} from '../geom/flat/union.js';
+import {createEditingStyle} from '../style/Style.js';
 
 class PolygonBrush extends Draw {
 
   constructor(options) {
 
-    super(options)
+    super(options);
     this.circleRadius_ = 10000  //TODO better value
-    this.drawmode_ = false;
-    this.newFeature = null;
+    this.mode_ = null;
+    this.overlay_.setStyle(options.style ? options.style : getDefaultStyleFunction());
   }
 
   handleEvent(event) {
-    let pass = super.handleEvent(event);
     const type = event.type;
-    const btn = event.originalEvent.button;
+    let pass = true;
     if (shiftKeyOnly(event) && (type === EventType.WHEEL || type === EventType.MOUSEWHEEL)) {
-      pass = false;
       this.updateSketchPointRadius_(event);
     }
-    if (btn == 0 && (type === MapBrowserEventType.POINTERDOWN)) {
+
+    if (event.type === MapBrowserEventType.POINTERDRAG && this.handlingDownUpSequence) {
       pass = false;
-      this.drawmode_ = true;
-      this.startDrawing_(event);
-      this.continueDrawing();
-      this.createOrUpdateSketchPoint_(event);
     }
-    if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
-      pass = false;
-      this.startDrawing_(event);
-      this.continueDrawing();
-      this.createOrUpdateSketchPoint_(event);
-    }
-    if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
-      this.finishDrawing();
-//      this.createOrUpdateSketchPoint_(event);
-    }
-    return pass
+
+    return super.handleEvent(event) && pass;
   }
 
+  /**
+   * @inheritDoc
+   */
+  handleDownEvent(event) {
+    if (!this.handlingDownUpSequence) {
+      this.startDrawing_(event);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * @inheritDoc
+   */
   handleUpEvent(event) {
-    //this is overridden because nothing should happen here
+    if (this.handlingDownUpSequence) {
+      this.finishDrawing();
+
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -64,14 +73,14 @@ class PolygonBrush extends Draw {
       this.sketchPoint_ = new Feature(new Circle(coordinates,this.circleRadius_));
       this.updateSketchFeatures_();
     } else {
-      const sketchPointGeom = /** @type {Circle} */ (this.sketchPoint_.getGeometry());
+      const sketchPointGeom = this.sketchPoint_.getGeometry();
       sketchPointGeom.setCenter(coordinates);
     }
   }
 
   updateSketchPointRadius_(event) {
     if (this.sketchPoint_) {
-      const sketchPointGeom = /** @type {Circle} */ (this.sketchPoint_.getGeometry());
+      const sketchPointGeom = this.sketchPoint_.getGeometry();
       if (event.originalEvent.deltaY > 0) {
         this.circleRadius_ = sketchPointGeom.getRadius() + 1000;  //TODO better value
       }
@@ -85,10 +94,10 @@ class PolygonBrush extends Draw {
   startDrawing_(event) {
     const start = event.coordinate;
     this.finishCoordinate_ = start;
-    this.sketchCoords_ = start.slice();
 
-    const geometry = new Circle(this.sketchCoords_,this.circleRadius_);
-    this.sketchFeature_ = new Feature(geometry);
+    this.sketchFeature_ = new Feature(fromCircle(this.sketchPoint_.getGeometry()));
+    this.updateSketchFeatures_();
+    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWSTART, this.sketchFeature_));
   }
 
   /**
@@ -97,50 +106,47 @@ class PolygonBrush extends Draw {
    * dispatched before inserting the feature.
    * @api
    */
-  continueDrawing() {
-    const sketchFeature = this.abortDrawing_();
-    if (!sketchFeature) {
-      return;
-    }
-    const geometry = fromCircle(sketchFeature.getGeometry());
-    sketchFeature.setGeometry(geometry);
+  handlePointerMove_(event) {
+    this.createOrUpdateSketchPoint_(event);
 
-    var currentPolygon = turfPolygon(geometry.getCoordinates())
+    if (this.sketchFeature_) {
+      const sketchFeature = this.sketchFeature_;
+      const geometry = fromCircle(this.sketchPoint_.getGeometry());
+      var sketchPointPolygon = turfPolygon(geometry.getCoordinates())
 
-    // Then insert feature
-    if (this.newFeature == null) {
-        if (this.features_) {
-          this.features_.push(sketchFeature);
-        }
-        if (this.source_) {
-          this.source_.addFeature(sketchFeature);
-        }
-        this.newFeature = sketchFeature;
-    }
-
-    if (this.newFeature != sketchFeature) {
-        var compareCoords = this.newFeature.getGeometry().getCoordinates();
-        var comparePoly = turfPolygon(compareCoords);
-        if (booleanOverlap(currentPolygon,comparePoly)) {
-            var coords = union(currentPolygon,comparePoly);
-            this.newFeature.getGeometry().setCoordinates(coords);
-        }
+      var sketchFeaturePolygon = turfPolygon(sketchFeature.getGeometry().getCoordinates());
+      if (booleanOverlap(sketchPointPolygon, sketchFeaturePolygon)) {
+          var coords = union(sketchPointPolygon, sketchFeaturePolygon);
+          sketchFeature.getGeometry().setCoordinates(coords);
+      }
     }
   }
 
   finishDrawing() {
-      this.drawmode_ = false;
-      this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, this.newFeature));
-      this.newFeature = null;
-  }
-
-  fixLastCoordinate(coords) {
-    if (coords[0][0] != coords[0][coords.length-1]) {
-        coords[0].push(coords[0]);
-        console.log("Safety coords pushed");
+    const sketchFeature = this.abortDrawing_();
+    if (!sketchFeature) {
+      return;
     }
-    return coords;
+
+    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
+    if (this.features_) {
+      this.features_.push(sketchFeature);
+    }
+    if (this.source_) {
+      this.source_.addFeature(sketchFeature);
+    }
   }
+}
+
+function getDefaultStyleFunction() {
+  let styles = createEditingStyle();
+  styles[GeometryType.POLYGON] =
+      styles[GeometryType.POLYGON].concat(
+        styles[GeometryType.LINE_STRING]
+      );
+  return function(feature, resolution) {
+    return styles[feature.getGeometry().getType()];
+  };
 }
 
 export default PolygonBrush;
