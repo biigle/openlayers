@@ -1,6 +1,6 @@
 import Map from '../src/ol/Map.js';
 import View from '../src/ol/View.js';
-import PolygonDraw from '../src/ol/interaction/PolygonDraw.js'
+import PolygonBrush from '../src/ol/interaction/PolygonBrush.js'
 import {Draw, Snap} from '../src/ol/interaction.js';
 import {Tile as TileLayer, Vector as VectorLayer} from '../src/ol/layer.js';
 import {OSM, Vector as VectorSource} from '../src/ol/source.js';
@@ -50,7 +50,7 @@ const typeSelect = document.getElementById('type');
 function addInteractions() {
   const value = typeSelect.value;
   if (value === 'Draw') {
-    draw = new PolygonDraw({
+    draw = new PolygonBrush({
       source: source,
       type: 'Point'
     });

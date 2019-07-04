@@ -12,7 +12,7 @@ import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js';
 import {unionCoords} from './polygonInteractionHelpers.js';
 
-class PolygonAdd extends Draw {
+class PolygonBrush extends Draw {
 
   constructor(options) {
 
@@ -27,7 +27,7 @@ class PolygonAdd extends Draw {
     const type = event.type;
     const btn = event.originalEvent.button;
     if (shiftKeyOnly(event) && (type === EventType.WHEEL || type === EventType.MOUSEWHEEL)) {
-      pass = false; 
+      pass = false;
       this.updateSketchPointRadius_(event);
     }
     if (btn == 0 && (type === MapBrowserEventType.POINTERDOWN)) {
@@ -143,4 +143,4 @@ class PolygonAdd extends Draw {
   }
 }
 
-export default PolygonAdd;
+export default PolygonBrush;
