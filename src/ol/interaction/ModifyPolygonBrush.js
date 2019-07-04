@@ -1,4 +1,5 @@
 import {polygon as turfPolygon} from '@turf/helpers'
+import booleanContains from '@turf/boolean-contains'
 import booleanOverlap from '@turf/boolean-overlap'
 import Feature from '../Feature.js';
 import MapBrowserEventType from '../MapBrowserEventType.js';
@@ -18,7 +19,7 @@ import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js'
 import {DrawEvent} from './Draw.js';
 import {DrawEventType} from './Draw.js';
-import {unionCoords} from './polygonInteractionHelpers.js';
+import {unionCoords, differenceCoords} from './polygonInteractionHelpers.js';
 
 /**
  * The segment index assigned to a circle's center when
@@ -34,7 +35,7 @@ const CIRCLE_CENTER_INDEX = 0;
  */
 const CIRCLE_CIRCUMFERENCE_INDEX = 1;
 
-class ModifyAdd extends Modify {
+class ModifyPolygonBrush extends Modify {
   /**
    * @param {Options} options Options.
    */
@@ -47,6 +48,8 @@ class ModifyAdd extends Modify {
     this.modifyFeature_ = null;
 
     this.sketchPoint_ = null;
+
+    this.mode_ = options.mode ? options.mode : 'add';
 
     /**
      * Draw overlay where sketch features are drawn.
@@ -133,7 +136,7 @@ class ModifyAdd extends Modify {
     const type = event.type;
     const btn = event.originalEvent.button;
     if (shiftKeyOnly(event) && (type === EventType.WHEEL || type === EventType.MOUSEWHEEL)) {
-      pass = false; 
+      pass = false;
       this.updateSketchPointRadius_(event);
     }
     if (btn == 0 && (type === MapBrowserEventType.POINTERDOWN)) {
@@ -151,9 +154,6 @@ class ModifyAdd extends Modify {
     }
     if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
       this.finishModifying_(event);
-    }
-    if (this.drawmode_ && type === MapBrowserEventType.DOUBLECLICK) {
-
     }
     this.createOrUpdateSketchPoint_(event);
     return pass
@@ -203,9 +203,19 @@ class ModifyAdd extends Modify {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
             var comparePoly = turfPolygon(compareCoords);
             if (booleanOverlap(currentPolygon,comparePoly)) {
-                this.modifyFeature_ = compareFeature;
+              this.willModifyFeatures_(event)
+              this.modifyFeature_ = compareFeature;
+              if (this.mode_ === 'subtract') {
+                var coords = differenceCoords(comparePoly,currentPolygon);
+              } else {
                 var coords = unionCoords(currentPolygon,comparePoly);
-                this.modifyFeature_.getGeometry().setCoordinates(coords);
+              }
+              this.modifyFeature_.getGeometry().setCoordinates(coords);
+            }
+
+            if (this.mode_ === 'subtract' && booleanContains(currentPolygon,comparePoly)) {
+              this.features_.remove(compareFeature);
+              this.modifyFeature_ = null;
             }
           }
         }
@@ -214,8 +224,16 @@ class ModifyAdd extends Modify {
         var compareCoords = this.modifyFeature_.getGeometry().getCoordinates();
         var comparePoly = turfPolygon(compareCoords);
         if (booleanOverlap(currentPolygon,comparePoly)) {
-            var coords = unionCoords(currentPolygon,comparePoly);
+            this.willModifyFeatures_(event);
+            if (this.mode_ === 'subtract') {
+              var coords = differenceCoords(comparePoly,currentPolygon);
+            } else {
+              var coords = unionCoords(currentPolygon,comparePoly);
+            }
             this.modifyFeature_.getGeometry().setCoordinates(coords);
+        } else if (this.mode_ === 'subtract' && booleanContains(currentPolygon,comparePoly)) {
+          this.features_.remove(compareFeature);
+          this.modifyFeature_ = null;
         }
     }
   }
@@ -261,4 +279,4 @@ function getDefaultStyleFunction() {
 }
 
 
-export default ModifyAdd;
+export default ModifyPolygonBrush;

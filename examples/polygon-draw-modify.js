@@ -5,8 +5,7 @@ import {Draw, Snap} from '../src/ol/interaction.js';
 import {Tile as TileLayer, Vector as VectorLayer} from '../src/ol/layer.js';
 import {OSM, Vector as VectorSource} from '../src/ol/source.js';
 import {Circle as CircleStyle, Fill, Stroke, Style} from '../src/ol/style.js';
-import ModifyAdd from '../src/ol/interaction/ModifyAdd.js'
-import ModifySubtract from '../src/ol/interaction/ModifySubtract.js'
+import ModifyPolygonBrush from '../src/ol/interaction/ModifyPolygonBrush.js'
 
 const raster = new TileLayer({
   source: new OSM()
@@ -42,7 +41,6 @@ const map = new Map({
 });
 
 let modify;
-//map.addInteraction(modify);
 
 let draw, snap; // global so we can remove them later
 const typeSelect = document.getElementById('type');
@@ -56,14 +54,18 @@ function addInteractions() {
     });
     map.addInteraction(draw);
   }
-  if (value === 'ModifyAdd') {
-    modify = new ModifyAdd({source: source});
+  if (value === 'Add') {
+    modify = new ModifyPolygonBrush({
+      mode: 'add',
+      source: source,
+    });
     map.addInteraction(modify);
   }
-  if (value === 'ModifySubtract') {
-    modify = new ModifySubtract({source: source});
-//    snap = new Snap({source: source});
-//    map.addInteraction(snap);
+  if (value === 'Subtract') {
+    modify = new ModifyPolygonBrush({
+      mode: 'subtract',
+      source: source,
+    });
     map.addInteraction(modify);
   }
 }
@@ -74,7 +76,6 @@ function addInteractions() {
 typeSelect.onchange = function() {
   map.removeInteraction(draw);
   map.removeInteraction(modify);
-//  map.removeInteraction(snap);
   addInteractions();
 };
 
