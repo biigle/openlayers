@@ -1,15 +1,8 @@
 import turfUnion from '@turf/union';
 import {polygon as turfPolygon} from '@turf/helpers';
+import {reducePrecision} from './simplify.js';
 
-function reducePrecision(coordinates) {
-  return coordinates.map(function (ring) {
-    return ring.map(function (coordinate) {
-      return coordinate.map(function (value) {
-        return Math.round(value * 1000) / 1000;
-      });
-    });
-  });
-}
+
 
 export function union(first, second) {
   // Reduce the precision of the coordinates to avoid artifacts from the union operation.
