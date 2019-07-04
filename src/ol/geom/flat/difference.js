@@ -1,22 +1,11 @@
-import union from '@turf/union';
-import difference from '@turf/difference';
+import turfDifference from '@turf/difference';
 import {polygon as turfPolygon} from '@turf/helpers';
-import {multiPolygon as turfMultiPolygon} from '@turf/helpers';
-import Feature from '../Feature.js';
-import Polygon from '../geom/Polygon.js';
-
-export function unionCoords(currentPolygon,comparePolygon) {
-    var unionPolygon = union(currentPolygon,comparePolygon);
-    if (unionPolygon.geometry.type == 'MultiPolygon') {
-        unionPolygon = turfPolygon(unionPolygon.geometry.coordinates[0]);
-    }
-    var coords = unionPolygon.geometry.coordinates;
-    return coords;
-}
+import Feature from '../../Feature.js';
+import Polygon from '../Polygon.js';
 
 //order of polygons is important
-export function differenceCoords(comparePolygon,currentPolygon) {
-    var differencePolygon = difference(comparePolygon,currentPolygon);
+export function difference(comparePolygon,currentPolygon) {
+    var differencePolygon = turfDifference(comparePolygon,currentPolygon);
     if (differencePolygon.geometry.type == 'MultiPolygon') {
         var maxArea = 0;
         var maxPoly;

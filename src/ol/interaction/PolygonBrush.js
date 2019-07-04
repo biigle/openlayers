@@ -10,7 +10,7 @@ import MapBrowserEventType from '../MapBrowserEventType.js';
 import EventType from '../events/EventType.js';
 import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js';
-import {unionCoords} from './polygonInteractionHelpers.js';
+import {union} from '../geom/flat/union.js';
 
 class PolygonBrush extends Draw {
 
@@ -122,7 +122,7 @@ class PolygonBrush extends Draw {
         var compareCoords = this.newFeature.getGeometry().getCoordinates();
         var comparePoly = turfPolygon(compareCoords);
         if (booleanOverlap(currentPolygon,comparePoly)) {
-            var coords = unionCoords(currentPolygon,comparePoly);
+            var coords = union(currentPolygon,comparePoly);
             this.newFeature.getGeometry().setCoordinates(coords);
         }
     }

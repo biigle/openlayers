@@ -19,7 +19,8 @@ import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js'
 import {DrawEvent} from './Draw.js';
 import {DrawEventType} from './Draw.js';
-import {unionCoords, differenceCoords} from './polygonInteractionHelpers.js';
+import {union} from '../geom/flat/union.js';
+import {difference} from '../geom/flat/difference.js';
 
 /**
  * The segment index assigned to a circle's center when
@@ -206,9 +207,9 @@ class ModifyPolygonBrush extends Modify {
               this.willModifyFeatures_(event)
               this.modifyFeature_ = compareFeature;
               if (this.mode_ === 'subtract') {
-                var coords = differenceCoords(comparePoly,currentPolygon);
+                var coords = difference(comparePoly,currentPolygon);
               } else {
-                var coords = unionCoords(currentPolygon,comparePoly);
+                var coords = union(currentPolygon,comparePoly);
               }
               this.modifyFeature_.getGeometry().setCoordinates(coords);
             }
@@ -226,9 +227,9 @@ class ModifyPolygonBrush extends Modify {
         if (booleanOverlap(currentPolygon,comparePoly)) {
             this.willModifyFeatures_(event);
             if (this.mode_ === 'subtract') {
-              var coords = differenceCoords(comparePoly,currentPolygon);
+              var coords = difference(comparePoly,currentPolygon);
             } else {
-              var coords = unionCoords(currentPolygon,comparePoly);
+              var coords = union(currentPolygon,comparePoly);
             }
             this.modifyFeature_.getGeometry().setCoordinates(coords);
         } else if (this.mode_ === 'subtract' && booleanContains(currentPolygon,comparePoly)) {
