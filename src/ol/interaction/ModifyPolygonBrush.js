@@ -233,53 +233,67 @@ class ModifyPolygonBrush extends Modify {
     const geometry = fromCircle(sketchFeature.getGeometry());
     sketchFeature.setGeometry(geometry);
 
-    var currentPolygon = turfPolygon(geometry.getCoordinates());
+    var sketchFeaturePolygon = turfPolygon(geometry.getCoordinates());
 
     if (this.source_) {
       this.source_.addFeature(sketchFeature);
     }
 
-    //TODO skip changes if modifyFeature_ contains sketchFeature_ other completely
-    //set coords of sketchFeature if sketchFeature_ contains modifyFeature_ completely
     if (this.modifyFeature_ === null) {
-        for (var i = 0; i < this.features_.getLength(); i++) {
-          var compareFeature = this.features_.getArray()[i];
-          if (compareFeature != sketchFeature) {
-            var compareCoords = compareFeature.getGeometry().getCoordinates();
-            var comparePoly = turfPolygon(compareCoords);
-            if (booleanOverlap(currentPolygon, comparePoly)) {
-              this.willModifyFeatures_(event);
-              this.modifyFeature_ = compareFeature;
-              if (this.mode_ === 'subtract') {
-                var coords = difference(comparePoly, currentPolygon);
-              } else {
-                var coords = union(currentPolygon, comparePoly);
-              }
-              this.modifyFeature_.getGeometry().setCoordinates(coords);
+      for (var i = 0; i < this.features_.getLength(); i++) {
+        var modifyFeature = this.features_.getArray()[i];
+        if (modifyFeature != sketchFeature) {
+          var modifyCoords = modifyFeature.getGeometry().getCoordinates();
+          var modifyPolygon = turfPolygon(modifyCoords);
+          if (booleanOverlap(sketchFeaturePolygon, modifyPolygon)) {
+            this.willModifyFeatures_(event);
+            this.modifyFeature_ = modifyFeature;
+            if (this.mode_ === 'subtract') {
+              var coords = difference(modifyPolygon, sketchFeaturePolygon);
+            } else {
+              var coords = union(sketchFeaturePolygon, modifyPolygon);
             }
-
-            if (this.mode_ === 'subtract' && booleanContains(currentPolygon, comparePoly)) {
-              this.features_.remove(compareFeature);
+            this.modifyFeature_.getGeometry().setCoordinates(coords);
+          }
+          if (booleanContains(sketchFeaturePolygon, modifyPolygon)) {
+            // sketchFeaturePolygon contains modifyPolygon completely
+            this.willModifyFeatures_(event);
+            this.modifyFeature_ = modifyFeature;
+            if (this.mode_ === 'subtract') {
+              this.features_.remove(modifyFeature);
               this.modifyFeature_ = null;
+            }
+            else {
+              coords = sketchFeature.getGeometry().getCoordinates();
+              this.modifyFeature_.getGeometry().setCoordinates(coords);
             }
           }
         }
+      }
     }
     else {
-        var compareCoords = this.modifyFeature_.getGeometry().getCoordinates();
-        var comparePoly = turfPolygon(compareCoords);
-        if (booleanOverlap(currentPolygon, comparePoly)) {
-            this.willModifyFeatures_(event);
-            if (this.mode_ === 'subtract') {
-              var coords = difference(comparePoly, currentPolygon);
-            } else {
-              var coords = union(currentPolygon, comparePoly);
-            }
-            this.modifyFeature_.getGeometry().setCoordinates(coords);
-        } else if (this.mode_ === 'subtract' && booleanContains(currentPolygon, comparePoly)) {
-          this.features_.remove(compareFeature);
+      var modifyCoords = this.modifyFeature_.getGeometry().getCoordinates();
+      var modifyPolygon = turfPolygon(modifyCoords);
+      if (booleanOverlap(sketchFeaturePolygon, modifyPolygon)) {
+        this.willModifyFeatures_(event);
+        if (this.mode_ === 'subtract') {
+          var coords = difference(modifyPolygon, sketchFeaturePolygon);
+        } else {
+          var coords = union(sketchFeaturePolygon, modifyPolygon);
+        }
+        this.modifyFeature_.getGeometry().setCoordinates(coords);
+      } else if (booleanContains(sketchFeaturePolygon, modifyPolygon)) {
+        // sketchFeaturePolygon contains modifyPolygon completely
+        this.willModifyFeatures_(event);
+        if (this.mode_ === 'subtract') {
+          this.features_.remove(modifyFeature);
           this.modifyFeature_ = null;
         }
+        else {
+          coords = sketchFeature.getGeometry().getCoordinates();
+          this.modifyFeature_.getGeometry().setCoordinates(coords);
+        }
+      }
     }
   }
 
