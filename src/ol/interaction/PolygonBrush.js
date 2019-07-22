@@ -19,7 +19,7 @@ class PolygonBrush extends Draw {
   constructor(options) {
 
     super(options);
-    this.circleRadius_ = 10000  //TODO better value
+    this.circleRadius_ = 10000;  //TODO better value
     this.mode_ = null;
     this.overlay_.setStyle(options.style ? options.style : getDefaultStyleFunction());
   }
@@ -45,6 +45,7 @@ class PolygonBrush extends Draw {
   handleDownEvent(event) {
     if (!this.handlingDownUpSequence) {
       this.startDrawing_(event);
+
       return true;
     }
 
@@ -71,7 +72,7 @@ class PolygonBrush extends Draw {
   createOrUpdateSketchPoint_(event) {
     const coordinates = event.coordinate.slice();
     if (!this.sketchPoint_) {
-      this.sketchPoint_ = new Feature(new Circle(coordinates,this.circleRadius_));
+      this.sketchPoint_ = new Feature(new Circle(coordinates, this.circleRadius_));
       this.updateSketchFeatures_();
     } else {
       const sketchPointGeom = this.sketchPoint_.getGeometry();
@@ -125,6 +126,7 @@ class PolygonBrush extends Draw {
   finishDrawing() {
     const sketchFeature = this.abortDrawing_();
     if (!sketchFeature) {
+
       return;
     }
 
@@ -144,7 +146,9 @@ function getDefaultStyleFunction() {
       styles[GeometryType.POLYGON].concat(
         styles[GeometryType.LINE_STRING]
       );
+
   return function(feature, resolution) {
+
     return styles[feature.getGeometry().getType()];
   };
 }

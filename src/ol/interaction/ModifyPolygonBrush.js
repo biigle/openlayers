@@ -111,7 +111,7 @@ class ModifyPolygonBrush extends Modify {
   createOrUpdateSketchPoint_(event) {
     const coordinates = event.coordinate.slice();
     if (!this.sketchPoint_) {
-      this.sketchPoint_ = new Feature(new Circle(coordinates,this.circleRadius_));
+      this.sketchPoint_ = new Feature(new Circle(coordinates, this.circleRadius_));
       this.updateSketchFeatures_();
     } else {
       const sketchPointGeom = /** @type {Circle} */ (this.sketchPoint_.getGeometry());
@@ -140,7 +140,7 @@ class ModifyPolygonBrush extends Modify {
       pass = false;
       this.updateSketchPointRadius_(event);
     }
-    if (btn == 0 && (type === MapBrowserEventType.POINTERDOWN)) {
+    if (btn === 0 && (type === MapBrowserEventType.POINTERDOWN)) {
       pass = false;
       this.drawmode_ = true;
       this.startModifying_(event);
@@ -153,10 +153,11 @@ class ModifyPolygonBrush extends Modify {
       this.continueModifying_();
       this.createOrUpdateSketchPoint_(event);
     }
-    if (btn == 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
+    if (btn === 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
       this.finishModifying_(event);
     }
     this.createOrUpdateSketchPoint_(event);
+
     return pass
   }
 
@@ -165,7 +166,7 @@ class ModifyPolygonBrush extends Modify {
     this.finishCoordinate_ = start;
     this.sketchCoords_ = start.slice();
 
-    const geometry = new Circle(this.sketchCoords_,this.circleRadius_);
+    const geometry = new Circle(this.sketchCoords_, this.circleRadius_);
     this.sketchFeature_ = new Feature(geometry);
     this.updateSketchFeatures_();
   }
@@ -179,42 +180,38 @@ class ModifyPolygonBrush extends Modify {
   continueModifying_() {
     const sketchFeature = this.abortDrawing_();
     if (!sketchFeature) {
+
       return;
     }
     const geometry = fromCircle(sketchFeature.getGeometry());
     sketchFeature.setGeometry(geometry);
 
-    var currentPolygon = turfPolygon(geometry.getCoordinates())
+    var currentPolygon = turfPolygon(geometry.getCoordinates());
 
-    //TODO dispatch event here or in the handler above? Then an event must be passed!
-    // First dispatch event to allow full set up of feature
-//    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWEND, sketchFeature));
-
-    // Then insert feature
     if (this.source_) {
       this.source_.addFeature(sketchFeature);
     }
 
     //TODO skip changes if modifyFeature_ contains sketchFeature_ other completely
     //set coords of sketchFeature if sketchFeature_ contains modifyFeature_ completely
-    if (this.modifyFeature_ == null) {
+    if (this.modifyFeature_ === null) {
         for (var i = 0; i < this.features_.getLength(); i++) {
           var compareFeature = this.features_.getArray()[i];
           if (compareFeature != sketchFeature) {
             var compareCoords = compareFeature.getGeometry().getCoordinates();
             var comparePoly = turfPolygon(compareCoords);
-            if (booleanOverlap(currentPolygon,comparePoly)) {
-              this.willModifyFeatures_(event)
+            if (booleanOverlap(currentPolygon, comparePoly)) {
+              this.willModifyFeatures_(event);
               this.modifyFeature_ = compareFeature;
               if (this.mode_ === 'subtract') {
-                var coords = difference(comparePoly,currentPolygon);
+                var coords = difference(comparePoly, currentPolygon);
               } else {
-                var coords = union(currentPolygon,comparePoly);
+                var coords = union(currentPolygon, comparePoly);
               }
               this.modifyFeature_.getGeometry().setCoordinates(coords);
             }
 
-            if (this.mode_ === 'subtract' && booleanContains(currentPolygon,comparePoly)) {
+            if (this.mode_ === 'subtract' && booleanContains(currentPolygon, comparePoly)) {
               this.features_.remove(compareFeature);
               this.modifyFeature_ = null;
             }
@@ -224,15 +221,15 @@ class ModifyPolygonBrush extends Modify {
     else {
         var compareCoords = this.modifyFeature_.getGeometry().getCoordinates();
         var comparePoly = turfPolygon(compareCoords);
-        if (booleanOverlap(currentPolygon,comparePoly)) {
+        if (booleanOverlap(currentPolygon, comparePoly)) {
             this.willModifyFeatures_(event);
             if (this.mode_ === 'subtract') {
-              var coords = difference(comparePoly,currentPolygon);
+              var coords = difference(comparePoly, currentPolygon);
             } else {
-              var coords = union(currentPolygon,comparePoly);
+              var coords = union(currentPolygon, comparePoly);
             }
             this.modifyFeature_.getGeometry().setCoordinates(coords);
-        } else if (this.mode_ === 'subtract' && booleanContains(currentPolygon,comparePoly)) {
+        } else if (this.mode_ === 'subtract' && booleanContains(currentPolygon, comparePoly)) {
           this.features_.remove(compareFeature);
           this.modifyFeature_ = null;
         }
@@ -255,6 +252,7 @@ class ModifyPolygonBrush extends Modify {
       this.sketchLine_ = null;
       /** @type {VectorSource} */ (this.overlay_.getSource()).clear(true);
     }
+
     return sketchFeature;
   }
 
@@ -265,6 +263,7 @@ class ModifyPolygonBrush extends Modify {
  * @return {number} The difference in indexes.
  */
 function compareIndexes(a, b) {
+
   return a.index - b.index;
 }
 
@@ -274,9 +273,11 @@ function compareIndexes(a, b) {
  */
 function getDefaultStyleFunction() {
   const style = createEditingStyle();
+
   return function(feature, resolution) {
-    return style[GeometryType.CIRCLE];//TODO does this help?
-  };
+
+    return style[GeometryType.CIRCLE];
+  }
 }
 
 

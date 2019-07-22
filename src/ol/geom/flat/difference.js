@@ -13,22 +13,19 @@ export function difference(first, second) {
   second.geometry.coordinates = reducePrecision(second.geometry.coordinates);
 
   var differencePolygon = turfDifference(first, second);
-  if (differencePolygon.geometry.type == 'MultiPolygon') {
+  if (differencePolygon.geometry.type === 'MultiPolygon') {
       var maxArea = 0;
       var maxPoly;
       for (var i = 0; i < differencePolygon.geometry.coordinates.length; i++) {
           var second = turfPolygon(differencePolygon.geometry.coordinates[i]);
-          var olPoly = new Feature(new Polygon(differencePolygon.geometry.coordinates[i]))
-          var area = olPoly.getGeometry().getArea()
-//            console.log("OL Poly area:",area,"Max area:",maxArea)
+          var olPoly = new Feature(new Polygon(differencePolygon.geometry.coordinates[i]));
+          var area = olPoly.getGeometry().getArea();
           if (area > maxArea) {
               maxArea = area;
               maxPoly = second;
-//                console.log(maxPoly)
           }
       }
       differencePolygon = maxPoly;
-//        console.log("Result:",maxOL);
   }
 
   return differencePolygon.geometry.coordinates;
