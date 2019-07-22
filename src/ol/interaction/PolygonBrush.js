@@ -35,7 +35,7 @@ class PolygonBrush extends Draw {
 
     this.overlay_.setStyle(options.style ? options.style : getDefaultStyleFunction());
 
-    this.circleRadius_ = this.resolution_ * 100;
+    this.circleRadius_ = this.resolution_ * 100; //TODO find a good factor
 
     this.zoomDirection_ = null;
   }
@@ -43,7 +43,7 @@ class PolygonBrush extends Draw {
   handleEvent(event) {
     const type = event.type;
     let pass = true;
-    if (shiftKeyOnly(event) && (type === EventType.WHEEL || type === EventType.MOUSEWHEEL)) {
+    if (shiftKeyOnly(event) && type === EventType.WHEEL) {
       this.updateSketchPointRadius_(event);
       pass = false;
     }

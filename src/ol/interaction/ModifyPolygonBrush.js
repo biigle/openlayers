@@ -179,7 +179,7 @@ class ModifyPolygonBrush extends Modify {
     let pass = true;
     const type = event.type;
     const btn = event.originalEvent.button;
-    if (shiftKeyOnly(event) && (type === EventType.WHEEL || type === EventType.MOUSEWHEEL)) {
+    if (shiftKeyOnly(event) && type === EventType.WHEEL) {
       pass = false;
       this.updateSketchPointRadius_(event);
     }
