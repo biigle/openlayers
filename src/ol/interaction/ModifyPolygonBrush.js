@@ -22,6 +22,11 @@ import {DrawEventType} from './Draw.js';
 import {union} from '../geom/flat/union.js';
 import {difference} from '../geom/flat/difference.js';
 
+const ZoomDirection = {
+  UP: 'up',
+  DOWN: 'down'
+};
+
 /**
  * The segment index assigned to a circle's center when
  * breaking up a circle into ModifySegmentDataType segments.
@@ -52,6 +57,14 @@ class ModifyPolygonBrush extends Modify {
 
     this.mode_ = options.mode ? options.mode : 'add';
 
+    this.setMap(options.map);
+
+    this.resolution_ = this.getMap().getView().getResolution();
+
+    this.circleRadius_ = this.resolution_ * 100;
+
+    this.zoomDirection_ = null;
+
     /**
      * Draw overlay where sketch features are drawn.
      * @type {VectorLayer}
@@ -79,7 +92,6 @@ class ModifyPolygonBrush extends Modify {
      */
     this.lastPointerEvent_ = null;
 
-    this.circleRadius_ = 10000;  //TODO better value
     this.drawmode_ = false;
 
   }
@@ -119,14 +131,45 @@ class ModifyPolygonBrush extends Modify {
     }
   }
 
+  fitSketchPointRadius_(event) {
+    let radiusFactor = this.getMap().getView().getResolution() / this.resolution_;
+    let zoomDirection = null;
+    if (event.originalEvent.deltaY > 0) {
+      zoomDirection = ZoomDirection.UP;
+      if (this.zoomDirection_ === null) {
+        radiusFactor = radiusFactor * 2;
+      }
+      else if (this.zoomDirection_ !== zoomDirection) {
+        radiusFactor = radiusFactor * 4;
+      }
+    }
+    if (event.originalEvent.deltaY < 0) {
+      zoomDirection = ZoomDirection.DOWN;
+      if (this.zoomDirection_ === null) {
+        radiusFactor = radiusFactor * 0.5;
+      }
+      else if (this.zoomDirection_ !== zoomDirection) {
+        radiusFactor = radiusFactor * 0.25;
+      }
+    }
+    if (this.sketchPoint_) {
+      const sketchPointGeom = this.sketchPoint_.getGeometry();
+      this.circleRadius_ = this.circleRadius_ * radiusFactor;
+      this.resolution_ = this.getMap().getView().getResolution();
+      sketchPointGeom.setRadius(this.circleRadius_);
+      this.zoom_ = this.getMap().getView().getZoom();
+    }
+    this.zoomDirection_ = zoomDirection;
+  }
+
   updateSketchPointRadius_(event) {
     if (this.sketchPoint_) {
-      const sketchPointGeom = /** @type {Circle} */ (this.sketchPoint_.getGeometry());
+      const sketchPointGeom = this.sketchPoint_.getGeometry();
       if (event.originalEvent.deltaY > 0) {
-        this.circleRadius_ = sketchPointGeom.getRadius() + 1000;  //TODO better value
+        this.circleRadius_ = sketchPointGeom.getRadius() + sketchPointGeom.getRadius() / 10;
       }
       if (event.originalEvent.deltaY < 0) {
-        this.circleRadius_ = sketchPointGeom.getRadius() - 1000;  //TODO better value
+        this.circleRadius_ = sketchPointGeom.getRadius() - sketchPointGeom.getRadius() / 10;
       }
       sketchPointGeom.setRadius(this.circleRadius_);
     }
@@ -157,6 +200,10 @@ class ModifyPolygonBrush extends Modify {
       this.finishModifying_(event);
     }
     this.createOrUpdateSketchPoint_(event);
+    if (!shiftKeyOnly(event) && event.type === EventType.WHEEL) {
+      this.fitSketchPointRadius_(event);
+      pass = true;
+    }
 
     return pass
   }

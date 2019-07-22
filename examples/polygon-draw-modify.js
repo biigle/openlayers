@@ -35,7 +35,8 @@ function addInteractions() {
   if (value === 'Draw') {
     draw = new PolygonBrush({
       source: source,
-      type: 'Point'
+      type: 'Point',
+      map: map,
     });
     map.addInteraction(draw);
   }
@@ -43,6 +44,7 @@ function addInteractions() {
     modify = new ModifyPolygonBrush({
       mode: 'add',
       source: source,
+      map: map,
     });
     map.addInteraction(modify);
   }
@@ -50,6 +52,7 @@ function addInteractions() {
     modify = new ModifyPolygonBrush({
       mode: 'subtract',
       source: source,
+      map: map,
     });
     map.addInteraction(modify);
   }

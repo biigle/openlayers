@@ -14,14 +14,30 @@ import {fromCircle} from '../geom/Polygon.js';
 import {union} from '../geom/flat/union.js';
 import {createEditingStyle} from '../style/Style.js';
 
+
+const ZoomDirection = {
+  UP: 'up',
+  DOWN: 'down'
+};
+
+
 class PolygonBrush extends Draw {
 
   constructor(options) {
 
     super(options);
-    this.circleRadius_ = 10000;  //TODO better value
+
+    this.setMap(options.map);
+
     this.mode_ = null;
+
+    this.resolution_ = this.getMap().getView().getResolution();
+
     this.overlay_.setStyle(options.style ? options.style : getDefaultStyleFunction());
+
+    this.circleRadius_ = this.resolution_ * 100;
+
+    this.zoomDirection_ = null;
   }
 
   handleEvent(event) {
@@ -35,8 +51,12 @@ class PolygonBrush extends Draw {
     if (event.type === MapBrowserEventType.POINTERDRAG && this.handlingDownUpSequence) {
       pass = false;
     }
-
-    return super.handleEvent(event) && pass;
+    let passSuper = super.handleEvent(event);
+    if (!shiftKeyOnly(event) && event.type === EventType.WHEEL) {
+      this.fitSketchPointRadius_(event);
+      pass = true;
+    }
+    return passSuper && pass;
   }
 
   /**
@@ -80,14 +100,45 @@ class PolygonBrush extends Draw {
     }
   }
 
+  fitSketchPointRadius_(event) {
+    let radiusFactor = this.getMap().getView().getResolution() / this.resolution_;
+    let zoomDirection = null;
+    if (event.originalEvent.deltaY > 0) {
+      zoomDirection = ZoomDirection.UP;
+      if (this.zoomDirection_ === null) {
+        radiusFactor = radiusFactor * 2;
+      }
+      else if (this.zoomDirection_ !== zoomDirection) {
+        radiusFactor = radiusFactor * 4;
+      }
+    }
+    if (event.originalEvent.deltaY < 0) {
+      zoomDirection = ZoomDirection.DOWN;
+      if (this.zoomDirection_ === null) {
+        radiusFactor = radiusFactor * 0.5;
+      }
+      else if (this.zoomDirection_ !== zoomDirection) {
+        radiusFactor = radiusFactor * 0.25;
+      }
+    }
+    if (this.sketchPoint_) {
+      const sketchPointGeom = this.sketchPoint_.getGeometry();
+      this.circleRadius_ = this.circleRadius_ * radiusFactor;
+      this.resolution_ = this.getMap().getView().getResolution();
+      sketchPointGeom.setRadius(this.circleRadius_);
+      this.zoom_ = this.getMap().getView().getZoom();
+    }
+    this.zoomDirection_ = zoomDirection;
+  }
+
   updateSketchPointRadius_(event) {
     if (this.sketchPoint_) {
       const sketchPointGeom = this.sketchPoint_.getGeometry();
       if (event.originalEvent.deltaY > 0) {
-        this.circleRadius_ = sketchPointGeom.getRadius() + 1000;  //TODO better value
+        this.circleRadius_ = sketchPointGeom.getRadius() + sketchPointGeom.getRadius() / 10;
       }
       if (event.originalEvent.deltaY < 0) {
-        this.circleRadius_ = sketchPointGeom.getRadius() - 1000;  //TODO better value
+        this.circleRadius_ = sketchPointGeom.getRadius() - sketchPointGeom.getRadius() / 10;
       }
       sketchPointGeom.setRadius(this.circleRadius_);
     }
