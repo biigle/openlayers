@@ -5,7 +5,8 @@ import {Draw, Snap} from '../src/ol/interaction.js';
 import {Tile as TileLayer, Vector as VectorLayer} from '../src/ol/layer.js';
 import {OSM, Vector as VectorSource} from '../src/ol/source.js';
 import {Circle as CircleStyle, Fill, Stroke, Style} from '../src/ol/style.js';
-import ModifyPolygonBrush from '../src/ol/interaction/ModifyPolygonBrush.js'
+import ModifyPolygonBrush from '../src/ol/interaction/ModifyPolygonBrush.js';
+import {always, never} from '../src/ol/events/condition.js';
 
 const raster = new TileLayer({
   source: new OSM()
@@ -42,7 +43,8 @@ function addInteractions() {
   }
   if (value === 'Add') {
     modify = new ModifyPolygonBrush({
-      mode: 'add',
+      addCondition: always,
+      subtractCondition: never,
       source: source,
       map: map,
     });
@@ -50,7 +52,8 @@ function addInteractions() {
   }
   if (value === 'Subtract') {
     modify = new ModifyPolygonBrush({
-      mode: 'subtract',
+      addCondition: never,
+      subtractCondition: always,
       source: source,
       map: map,
     });

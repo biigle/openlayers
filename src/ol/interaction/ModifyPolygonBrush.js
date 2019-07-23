@@ -55,8 +55,6 @@ class ModifyPolygonBrush extends Modify {
 
     this.sketchPoint_ = null;
 
-    this.mode_ = options.mode ? options.mode : 'add';
-
     this.setMap(options.map);
 
     this.resolution_ = this.getMap().getView().getResolution();
@@ -64,6 +62,9 @@ class ModifyPolygonBrush extends Modify {
     this.circleRadius_ = this.resolution_ * 100;
 
     this.zoomDirection_ = null;
+
+    this.addCondition_ = options.addCondition;
+    this.subtractCondition_ = options.subtractCondition;
 
     /**
      * Draw overlay where sketch features are drawn.
@@ -248,9 +249,9 @@ class ModifyPolygonBrush extends Modify {
           if (booleanOverlap(sketchFeaturePolygon, modifyPolygon)) {
             this.willModifyFeatures_(event);
             this.modifyFeature_ = modifyFeature;
-            if (this.mode_ === 'subtract') {
+            if (this.subtractCondition_()) {
               var coords = difference(modifyPolygon, sketchFeaturePolygon);
-            } else {
+            } else if (this.addCondition_()) {
               var coords = union(sketchFeaturePolygon, modifyPolygon);
             }
             this.modifyFeature_.getGeometry().setCoordinates(coords);
@@ -259,11 +260,11 @@ class ModifyPolygonBrush extends Modify {
             // sketchFeaturePolygon contains modifyPolygon completely
             this.willModifyFeatures_(event);
             this.modifyFeature_ = modifyFeature;
-            if (this.mode_ === 'subtract') {
+            if (this.subtractCondition_()) {
               this.features_.remove(modifyFeature);
               this.modifyFeature_ = null;
             }
-            else {
+            else if (this.addCondition_()) {
               coords = sketchFeature.getGeometry().getCoordinates();
               this.modifyFeature_.getGeometry().setCoordinates(coords);
             }
@@ -276,20 +277,20 @@ class ModifyPolygonBrush extends Modify {
       var modifyPolygon = turfPolygon(modifyCoords);
       if (booleanOverlap(sketchFeaturePolygon, modifyPolygon)) {
         this.willModifyFeatures_(event);
-        if (this.mode_ === 'subtract') {
+        if (this.subtractCondition_()) {
           var coords = difference(modifyPolygon, sketchFeaturePolygon);
-        } else {
+        } else if (this.addCondition_()) {
           var coords = union(sketchFeaturePolygon, modifyPolygon);
         }
         this.modifyFeature_.getGeometry().setCoordinates(coords);
       } else if (booleanContains(sketchFeaturePolygon, modifyPolygon)) {
         // sketchFeaturePolygon contains modifyPolygon completely
         this.willModifyFeatures_(event);
-        if (this.mode_ === 'subtract') {
+        if (this.subtractCondition_()) {
           this.features_.remove(modifyFeature);
           this.modifyFeature_ = null;
         }
-        else {
+        else if (this.addCondition_()) {
           coords = sketchFeature.getGeometry().getCoordinates();
           this.modifyFeature_.getGeometry().setCoordinates(coords);
         }
