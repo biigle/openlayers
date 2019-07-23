@@ -27,6 +27,19 @@ const ZoomDirection = {
   DOWN: 'down'
 };
 
+
+/**
+ * @enum {string}
+ */
+export const ModifyPolygonBrushEventType = {
+  /**
+   * Triggered upon feature modification start
+   * @event ModifyPolygonBrushEvent#modifyremove
+   * @api
+   */
+  MODIFYREMOVE: 'modifyremove',
+};
+
 /**
  * The segment index assigned to a circle's center when
  * breaking up a circle into ModifySegmentDataType segments.
@@ -40,6 +53,25 @@ const CIRCLE_CENTER_INDEX = 0;
  * @type {number}
  */
 const CIRCLE_CIRCUMFERENCE_INDEX = 1;
+
+/**
+ * @classdesc
+ * Events emitted by {@link module:ol/interaction/ModifyPolygonBrush~ModifyPolygonBrush} instances are
+ * instances of this type.
+ */
+class ModifyPolygonBrushEvent extends ModifyEvent {
+  /**
+   * @param {ModifyPolygonBrushEventType} type Type.
+   * @param {Collection<Feature>} features
+   * The list of features a feature is removed from.
+   * @param {import("../MapBrowserPointerEvent.js").default} mapBrowserPointerEvent
+   * Associated {@link module:ol/MapBrowserPointerEvent}.
+   */
+  constructor(type, features, mapBrowserPointerEvent) {
+    super(type, features, mapBrowserPointerEvent);
+  }
+
+}
 
 class ModifyPolygonBrush extends Modify {
   /**
@@ -188,13 +220,13 @@ class ModifyPolygonBrush extends Modify {
       pass = false;
       this.drawmode_ = true;
       this.startModifying_(event);
-      this.continueModifying_();
+      this.continueModifying_(event);
       this.createOrUpdateSketchPoint_(event);
     }
     if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
       pass = false;
       this.startModifying_(event);
-      this.continueModifying_();
+      this.continueModifying_(event);
       this.createOrUpdateSketchPoint_(event);
     }
     if (btn === 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
@@ -225,8 +257,8 @@ class ModifyPolygonBrush extends Modify {
    * dispatched before inserting the feature.
    * @api
    */
-  continueModifying_() {
-    const sketchFeature = this.abortDrawing_();
+  continueModifying_(event) {
+    const sketchFeature = this.abortModifying_();
     if (!sketchFeature) {
 
       return;
@@ -263,6 +295,12 @@ class ModifyPolygonBrush extends Modify {
             if (this.subtractCondition_()) {
               this.features_.remove(modifyFeature);
               this.modifyFeature_ = null;
+              this.dispatchEvent(
+                new ModifyPolygonBrushEvent(
+                  ModifyPolygonBrushEventType.MODIFYREMOVE, this.features_, event
+                )
+              );
+              this.abortModifying_();
             }
             else if (this.addCondition_()) {
               coords = sketchFeature.getGeometry().getCoordinates();
@@ -289,6 +327,12 @@ class ModifyPolygonBrush extends Modify {
         if (this.subtractCondition_()) {
           this.features_.remove(modifyFeature);
           this.modifyFeature_ = null;
+          this.dispatchEvent(
+            new ModifyPolygonBrushEvent(
+              ModifyPolygonBrushEventType.MODIFYREMOVE, this.features_, event
+            )
+          );
+          this.abortModifying_();
         }
         else if (this.addCondition_()) {
           coords = sketchFeature.getGeometry().getCoordinates();
@@ -305,7 +349,7 @@ class ModifyPolygonBrush extends Modify {
       this.modifyFeature_ = null;
   }
 
-  abortDrawing_() {
+  abortModifying_() {
     this.finishCoordinate_ = null;
     const sketchFeature = this.sketchFeature_;
     if (sketchFeature) {
@@ -313,6 +357,9 @@ class ModifyPolygonBrush extends Modify {
       this.sketchPoint_ = null;
       this.sketchLine_ = null;
       /** @type {VectorSource} */ (this.overlay_.getSource()).clear(true);
+    }
+    if (this.modifyFeature_) {
+      this.modifyFeature_ = null;
     }
 
     return sketchFeature;
