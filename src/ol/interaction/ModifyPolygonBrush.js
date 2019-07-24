@@ -2,31 +2,22 @@ import {polygon as turfPolygon} from '@turf/helpers'
 import booleanContains from '@turf/boolean-contains'
 import booleanOverlap from '@turf/boolean-overlap'
 import Feature from '../Feature.js';
-import MapBrowserEventType from '../MapBrowserEventType.js';
-import Event from '../events/Event.js';
 import EventType from '../events/EventType.js';
 import GeometryType from '../geom/GeometryType.js';
-import Point from '../geom/Point.js';
 import Circle from '../geom/Circle.js';
-import VectorLayer from '../layer/Vector.js';
-import VectorSource from '../source/Vector.js';
-import VectorEventType from '../source/VectorEventType.js';
 import {createEditingStyle} from '../style/Style.js';
 import Modify from './Modify.js'
 import {ModifyEvent} from './Modify.js'
 import {ModifyEventType} from './Modify.js'
 import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js'
-import {DrawEvent} from './Draw.js';
-import {DrawEventType} from './Draw.js';
 import {union} from '../geom/flat/union.js';
 import {difference} from '../geom/flat/difference.js';
-
-const ZoomDirection = {
-  UP: 'up',
-  DOWN: 'down'
-};
-
+import {always, never} from '../events/condition.js';
+import {listen} from '../events.js';
+import {getChangeEventType} from '../Object.js';
+import InteractionProperty from './Property.js';
+import Collection from '../Collection.js';
 
 /**
  * @enum {string}
@@ -40,38 +31,8 @@ export const ModifyPolygonBrushEventType = {
   MODIFYREMOVE: 'modifyremove',
 };
 
-/**
- * The segment index assigned to a circle's center when
- * breaking up a circle into ModifySegmentDataType segments.
- * @type {number}
- */
-const CIRCLE_CENTER_INDEX = 0;
-
-/**
- * The segment index assigned to a circle's circumference when
- * breaking up a circle into ModifySegmentDataType segments.
- * @type {number}
- */
-const CIRCLE_CIRCUMFERENCE_INDEX = 1;
-
-/**
- * @classdesc
- * Events emitted by {@link module:ol/interaction/ModifyPolygonBrush~ModifyPolygonBrush} instances are
- * instances of this type.
- */
-class ModifyPolygonBrushEvent extends ModifyEvent {
-  /**
-   * @param {ModifyPolygonBrushEventType} type Type.
-   * @param {Collection<Feature>} features
-   * The list of features a feature is removed from.
-   * @param {import("../MapBrowserPointerEvent.js").default} mapBrowserPointerEvent
-   * Associated {@link module:ol/MapBrowserPointerEvent}.
-   */
-  constructor(type, features, mapBrowserPointerEvent) {
-    super(type, features, mapBrowserPointerEvent);
-  }
-
-}
+const MIN_BRUSH_SIZE = 5;
+const BRUSH_RESIZE_STEP = 10;
 
 class ModifyPolygonBrush extends Modify {
   /**
@@ -79,312 +40,168 @@ class ModifyPolygonBrush extends Modify {
    */
   constructor(options) {
 
-    super(/** @type {import("./Pointer.js").Options} */ (options));
+    super(options);
 
-    this.sketchFeature_ = null;
-
-    this.modifyFeature_ = null;
+    this.overlay_.setStyle(options.style ? options.style : getDefaultStyleFunction());
+    this.deleteCondition_ = never;
 
     this.sketchPoint_ = null;
+    this.modifiedFeatures_ = new Set();
+    this.sketchPointRadius_ = options.brushRadius ? options.brushRadius : 100;
+    this.addCondition_ = options.addCondition ? options.addCondition : always;
+    this.subtractCondition_ = options.subtractCondition ? options.subtractCondition : always;
 
-    this.setMap(options.map);
-
-    this.resolution_ = this.getMap().getView().getResolution();
-
-    this.circleRadius_ = this.resolution_ * 100;
-
-    this.zoomDirection_ = null;
-
-    this.addCondition_ = options.addCondition;
-    this.subtractCondition_ = options.subtractCondition;
-
-    /**
-     * Draw overlay where sketch features are drawn.
-     * @type {VectorLayer}
-     * @private
-     */
-    this.overlay_ = new VectorLayer({
-      source: new VectorSource({
-        useSpatialIndex: false,
-        wrapX: options.wrapX ? options.wrapX : false
-      }),
-      style: options.style ? options.style :
-        getDefaultStyleFunction(),
-      updateWhileInteracting: true
-    });
-
-    /**
-     * @type {VectorSource}
-     * @private
-     */
-    this.source_ = null;
-
-    /**
-     * @type {import("../MapBrowserPointerEvent.js").default}
-     * @private
-     */
-    this.lastPointerEvent_ = null;
-
-    this.drawmode_ = false;
+    listen(this, getChangeEventType(InteractionProperty.ACTIVE), this.updateState_, this);
 
   }
 
-  /**
-   * Redraw the sketch features.
-   * @private
-   */
-  updateSketchFeatures_() {
-    const sketchFeatures = [];
-    if (this.sketchFeature_) {
-      sketchFeatures.push(this.sketchFeature_);
+  setMap(map) {
+    super.setMap(map);
+    if (map) {
+      map.getView().on('change:resolution', this.updateRelativeSketchPointRadius_.bind(this));
     }
-    if (this.sketchLine_) {
-      sketchFeatures.push(this.sketchLine_);
-    }
-    if (this.sketchPoint_) {
-      sketchFeatures.push(this.sketchPoint_);
-    }
-    const overlaySource = /** @type {VectorSource} */ (this.overlay_.getSource());
-    overlaySource.clear(true);
-    overlaySource.addFeatures(sketchFeatures);
   }
 
-  /**
-   * @param {import("../MapBrowserEvent.js").default} event Event.
-   * @private
-   */
+  updateState_() {
+    const map = this.getMap();
+    const active = this.getActive();
+    if (!map || !active) {
+      this.abortModifying_();
+    }
+    this.overlay_.setMap(active ? map : null);
+  }
+
   createOrUpdateSketchPoint_(event) {
     const coordinates = event.coordinate.slice();
     if (!this.sketchPoint_) {
-      this.sketchPoint_ = new Feature(new Circle(coordinates, this.circleRadius_));
-      this.updateSketchFeatures_();
+      let relativeRadius = event.map.getView().getResolution() * this.sketchPointRadius_;
+      this.sketchPoint_ = new Feature(new Circle(coordinates, relativeRadius));
+      this.overlay_.getSource().addFeature(this.sketchPoint_)
     } else {
-      const sketchPointGeom = /** @type {Circle} */ (this.sketchPoint_.getGeometry());
+      const sketchPointGeom = this.sketchPoint_.getGeometry();
       sketchPointGeom.setCenter(coordinates);
     }
   }
 
-  fitSketchPointRadius_(event) {
-    let radiusFactor = this.getMap().getView().getResolution() / this.resolution_;
-    let zoomDirection = null;
-    if (event.originalEvent.deltaY > 0) {
-      zoomDirection = ZoomDirection.UP;
-      if (this.zoomDirection_ === null) {
-        radiusFactor = radiusFactor * 2;
-      }
-      else if (this.zoomDirection_ !== zoomDirection) {
-        radiusFactor = radiusFactor * 4;
-      }
-    }
-    if (event.originalEvent.deltaY < 0) {
-      zoomDirection = ZoomDirection.DOWN;
-      if (this.zoomDirection_ === null) {
-        radiusFactor = radiusFactor * 0.5;
-      }
-      else if (this.zoomDirection_ !== zoomDirection) {
-        radiusFactor = radiusFactor * 0.25;
-      }
-    }
+  updateRelativeSketchPointRadius_(event) {
     if (this.sketchPoint_) {
-      const sketchPointGeom = this.sketchPoint_.getGeometry();
-      this.circleRadius_ = this.circleRadius_ * radiusFactor;
-      this.resolution_ = this.getMap().getView().getResolution();
-      sketchPointGeom.setRadius(this.circleRadius_);
-      this.zoom_ = this.getMap().getView().getZoom();
+      this.sketchPoint_.getGeometry().setRadius(
+        this.sketchPointRadius_ * event.target.getResolution()
+      );
     }
-    this.zoomDirection_ = zoomDirection;
   }
 
-  updateSketchPointRadius_(event) {
+  updateAbsoluteSketchPointRadius_(event) {
     if (this.sketchPoint_) {
-      const sketchPointGeom = this.sketchPoint_.getGeometry();
       if (event.originalEvent.deltaY > 0) {
-        this.circleRadius_ = sketchPointGeom.getRadius() + sketchPointGeom.getRadius() / 10;
+        this.sketchPointRadius_ += BRUSH_RESIZE_STEP;
       }
       if (event.originalEvent.deltaY < 0) {
-        this.circleRadius_ = sketchPointGeom.getRadius() - sketchPointGeom.getRadius() / 10;
+        this.sketchPointRadius_ = Math.max(
+          this.sketchPointRadius_ - BRUSH_RESIZE_STEP,
+          MIN_BRUSH_SIZE
+        );
       }
-      sketchPointGeom.setRadius(this.circleRadius_);
+      this.sketchPoint_.getGeometry().setRadius(
+        this.sketchPointRadius_ * event.map.getView().getResolution()
+      );
     }
   }
 
   handleEvent(event) {
-    let pass = true;
     const type = event.type;
-    const btn = event.originalEvent.button;
+    let pass = true;
     if (shiftKeyOnly(event) && type === EventType.WHEEL) {
+      this.updateAbsoluteSketchPointRadius_(event);
       pass = false;
-      this.updateSketchPointRadius_(event);
-    }
-    if (btn === 0 && (type === MapBrowserEventType.POINTERDOWN)) {
-      pass = false;
-      this.drawmode_ = true;
-      this.startModifying_(event);
-      this.continueModifying_(event);
-      this.createOrUpdateSketchPoint_(event);
-    }
-    if (this.drawmode_ && type === MapBrowserEventType.POINTERMOVE) {
-      pass = false;
-      this.startModifying_(event);
-      this.continueModifying_(event);
-      this.createOrUpdateSketchPoint_(event);
-    }
-    if (btn === 0 && this.drawmode_ && type === MapBrowserEventType.POINTERUP) {
-      this.finishModifying_(event);
-    }
-    this.createOrUpdateSketchPoint_(event);
-    if (!shiftKeyOnly(event) && event.type === EventType.WHEEL) {
-      this.fitSketchPointRadius_(event);
-      pass = true;
     }
 
-    return pass
+    return super.handleEvent(event) && pass;
+  }
+
+  handlePointerMove_(event) {
+    this.createOrUpdateSketchPoint_(event);
+  }
+
+  handleDownEvent(event) {
+    if (!this.handlingDownUpSequence) {
+      this.startModifying_(event);
+
+      return true;
+    }
+
+    return false;
+  }
+
+  handleUpEvent(event) {
+    if (this.handlingDownUpSequence) {
+      this.finishModifying_(event);
+
+      return true;
+    }
+
+    return false;
   }
 
   startModifying_(event) {
-    const start = event.coordinate;
-    this.finishCoordinate_ = start;
-    this.sketchCoords_ = start.slice();
-
-    const geometry = new Circle(this.sketchCoords_, this.circleRadius_);
-    this.sketchFeature_ = new Feature(geometry);
-    this.updateSketchFeatures_();
+    this.modifyCurrentFeatures_(event);
   }
 
-  /**
-   * Stop drawing and add the sketch feature to the target layer.
-   * The {@link module:ol/interaction/Draw~DrawEventType.DRAWEND} event is
-   * dispatched before inserting the feature.
-   * @api
-   */
-  continueModifying_(event) {
-    const sketchFeature = this.abortModifying_();
-    if (!sketchFeature) {
+  handleDragEvent(event) {
+    this.createOrUpdateSketchPoint_(event);
+    this.modifyCurrentFeatures_(event);
+  }
 
-      return;
-    }
-    const geometry = fromCircle(sketchFeature.getGeometry());
-    sketchFeature.setGeometry(geometry);
+  modifyCurrentFeatures_(event) {
+    const sketchPointGeom = fromCircle(this.sketchPoint_.getGeometry());
+    let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
+    let currentFeatures = this.features_.getArray().filter(function (feature) {
+        let featurePolygon = turfPolygon(feature.getGeometry().getCoordinates());
 
-    var sketchFeaturePolygon = turfPolygon(geometry.getCoordinates());
+        return booleanOverlap(sketchPointPolygon, featurePolygon);
+    }, this);
 
-    if (this.source_) {
-      this.source_.addFeature(sketchFeature);
-    }
+    currentFeatures.forEach(function (feature) {
+      this.modifyFeature_(feature, sketchPointPolygon, event);
+    }, this);
+  }
 
-    if (this.modifyFeature_ === null) {
-      for (var i = 0; i < this.features_.getLength(); i++) {
-        var modifyFeature = this.features_.getArray()[i];
-        if (modifyFeature != sketchFeature) {
-          var modifyCoords = modifyFeature.getGeometry().getCoordinates();
-          var modifyPolygon = turfPolygon(modifyCoords);
-          if (booleanOverlap(sketchFeaturePolygon, modifyPolygon)) {
-            this.willModifyFeatures_(event);
-            this.modifyFeature_ = modifyFeature;
-            if (this.subtractCondition_()) {
-              var coords = difference(modifyPolygon, sketchFeaturePolygon);
-            } else if (this.addCondition_()) {
-              var coords = union(sketchFeaturePolygon, modifyPolygon);
-            }
-            this.modifyFeature_.getGeometry().setCoordinates(coords);
-          }
-          if (booleanContains(sketchFeaturePolygon, modifyPolygon)) {
-            // sketchFeaturePolygon contains modifyPolygon completely
-            this.willModifyFeatures_(event);
-            this.modifyFeature_ = modifyFeature;
-            if (this.subtractCondition_()) {
-              this.features_.remove(modifyFeature);
-              this.modifyFeature_ = null;
-              this.dispatchEvent(
-                new ModifyPolygonBrushEvent(
-                  ModifyPolygonBrushEventType.MODIFYREMOVE, this.features_, event
-                )
-              );
-              this.abortModifying_();
-            }
-            else if (this.addCondition_()) {
-              coords = sketchFeature.getGeometry().getCoordinates();
-              this.modifyFeature_.getGeometry().setCoordinates(coords);
-            }
-          }
-        }
+  modifyFeature_(feature, brush, event) {
+    let featurePolygon = turfPolygon(feature.getGeometry().getCoordinates());
+    if (booleanOverlap(brush, featurePolygon)) {
+      if (this.subtractCondition_()) {
+        var coords = difference(featurePolygon, brush);
+      } else if (this.addCondition_()) {
+        var coords = union(brush, featurePolygon);
       }
-    }
-    else {
-      var modifyCoords = this.modifyFeature_.getGeometry().getCoordinates();
-      var modifyPolygon = turfPolygon(modifyCoords);
-      if (booleanOverlap(sketchFeaturePolygon, modifyPolygon)) {
-        this.willModifyFeatures_(event);
-        if (this.subtractCondition_()) {
-          var coords = difference(modifyPolygon, sketchFeaturePolygon);
-        } else if (this.addCondition_()) {
-          var coords = union(sketchFeaturePolygon, modifyPolygon);
-        }
-        this.modifyFeature_.getGeometry().setCoordinates(coords);
-      } else if (booleanContains(sketchFeaturePolygon, modifyPolygon)) {
-        // sketchFeaturePolygon contains modifyPolygon completely
-        this.willModifyFeatures_(event);
-        if (this.subtractCondition_()) {
-          this.features_.remove(modifyFeature);
-          this.modifyFeature_ = null;
-          this.dispatchEvent(
-            new ModifyPolygonBrushEvent(
-              ModifyPolygonBrushEventType.MODIFYREMOVE, this.features_, event
-            )
-          );
-          this.abortModifying_();
-        }
-        else if (this.addCondition_()) {
-          coords = sketchFeature.getGeometry().getCoordinates();
-          this.modifyFeature_.getGeometry().setCoordinates(coords);
-        }
+      feature.getGeometry().setCoordinates(coords);
+      this.modifiedFeatures_.add(feature);
+    } else if (booleanContains(brush, featurePolygon)) {
+      if (this.subtractCondition_()) {
+        this.features_.remove(feature);
+        this.dispatchEvent(
+          new ModifyEvent(ModifyPolygonBrushEventType.MODIFYREMOVE, feature, event)
+        );
+      } else if (this.addCondition_()) {
+        feature.getGeometry().setCoordinates(sketchPointGeom.getCoordinates());
+        this.modifiedFeatures_.add(feature);
       }
     }
   }
 
   finishModifying_(event) {
-      this.drawmode_ = false;
       this.createOrUpdateSketchPoint_(event);
-      this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
-      this.modifyFeature_ = null;
-  }
-
-  abortModifying_() {
-    this.finishCoordinate_ = null;
-    const sketchFeature = this.sketchFeature_;
-    if (sketchFeature) {
-      this.sketchFeature_ = null;
-      this.sketchPoint_ = null;
-      this.sketchLine_ = null;
-      /** @type {VectorSource} */ (this.overlay_.getSource()).clear(true);
-    }
-    if (this.modifyFeature_) {
-      this.modifyFeature_ = null;
-    }
-
-    return sketchFeature;
+      let modifiedFeatures = new Collection(Array.from(this.modifiedFeatures_));
+      this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.modifiedFeatures_, event));
+      this.modifiedFeatures_.clear();
   }
 
 }
-/**
- * @param {SegmentData} a The first segment data.
- * @param {SegmentData} b The second segment data.
- * @return {number} The difference in indexes.
- */
-function compareIndexes(a, b) {
 
-  return a.index - b.index;
-}
-
-
-/**
- * @return {import("../style/Style.js").StyleFunction} Styles.
- */
 function getDefaultStyleFunction() {
   const style = createEditingStyle();
 
   return function(feature, resolution) {
-
     return style[GeometryType.CIRCLE];
   }
 }
