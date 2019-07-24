@@ -14,9 +14,6 @@ import {fromCircle} from '../geom/Polygon.js'
 import {union} from '../geom/flat/union.js';
 import {difference} from '../geom/flat/difference.js';
 import {always, never} from '../events/condition.js';
-import {listen} from '../events.js';
-import {getChangeEventType} from '../Object.js';
-import InteractionProperty from './Property.js';
 import Collection from '../Collection.js';
 
 /**
@@ -46,13 +43,9 @@ class ModifyPolygonBrush extends Modify {
     this.deleteCondition_ = never;
 
     this.sketchPoint_ = null;
-    this.modifiedFeatures_ = new Set();
     this.sketchPointRadius_ = options.brushRadius ? options.brushRadius : 100;
     this.addCondition_ = options.addCondition ? options.addCondition : always;
     this.subtractCondition_ = options.subtractCondition ? options.subtractCondition : always;
-
-    listen(this, getChangeEventType(InteractionProperty.ACTIVE), this.updateState_, this);
-
   }
 
   setMap(map) {
@@ -60,15 +53,6 @@ class ModifyPolygonBrush extends Modify {
     if (map) {
       map.getView().on('change:resolution', this.updateRelativeSketchPointRadius_.bind(this));
     }
-  }
-
-  updateState_() {
-    const map = this.getMap();
-    const active = this.getActive();
-    if (!map || !active) {
-      this.abortModifying_();
-    }
-    this.overlay_.setMap(active ? map : null);
   }
 
   createOrUpdateSketchPoint_(event) {
@@ -155,47 +139,32 @@ class ModifyPolygonBrush extends Modify {
   modifyCurrentFeatures_(event) {
     const sketchPointGeom = fromCircle(this.sketchPoint_.getGeometry());
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
-    let currentFeatures = this.features_.getArray().filter(function (feature) {
+    this.features_.getArray().forEach(function (feature) {
         let featurePolygon = turfPolygon(feature.getGeometry().getCoordinates());
-
-        return booleanOverlap(sketchPointPolygon, featurePolygon);
+        if (booleanOverlap(sketchPointPolygon, featurePolygon)) {
+          if (this.subtractCondition_()) {
+            var coords = difference(featurePolygon, sketchPointPolygon);
+          } else if (this.addCondition_()) {
+            var coords = union(sketchPointPolygon, featurePolygon);
+          }
+          feature.getGeometry().setCoordinates(coords);
+        } else if (booleanContains(sketchPointPolygon, featurePolygon)) {
+          if (this.subtractCondition_()) {
+            this.features_.remove(feature);
+            this.dispatchEvent(
+              new ModifyEvent(ModifyPolygonBrushEventType.MODIFYREMOVE, new Collection([feature]), event)
+            );
+          } else if (this.addCondition_()) {
+            feature.getGeometry().setCoordinates(sketchPointGeom.getCoordinates());
+          }
+        }
     }, this);
-
-    currentFeatures.forEach(function (feature) {
-      this.modifyFeature_(feature, sketchPointPolygon, event);
-    }, this);
-  }
-
-  modifyFeature_(feature, brush, event) {
-    let featurePolygon = turfPolygon(feature.getGeometry().getCoordinates());
-    if (booleanOverlap(brush, featurePolygon)) {
-      if (this.subtractCondition_()) {
-        var coords = difference(featurePolygon, brush);
-      } else if (this.addCondition_()) {
-        var coords = union(brush, featurePolygon);
-      }
-      feature.getGeometry().setCoordinates(coords);
-      this.modifiedFeatures_.add(feature);
-    } else if (booleanContains(brush, featurePolygon)) {
-      if (this.subtractCondition_()) {
-        this.features_.remove(feature);
-        this.dispatchEvent(
-          new ModifyEvent(ModifyPolygonBrushEventType.MODIFYREMOVE, feature, event)
-        );
-      } else if (this.addCondition_()) {
-        feature.getGeometry().setCoordinates(sketchPointGeom.getCoordinates());
-        this.modifiedFeatures_.add(feature);
-      }
-    }
   }
 
   finishModifying_(event) {
       this.createOrUpdateSketchPoint_(event);
-      let modifiedFeatures = new Collection(Array.from(this.modifiedFeatures_));
-      this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.modifiedFeatures_, event));
-      this.modifiedFeatures_.clear();
+      this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
   }
-
 }
 
 function getDefaultStyleFunction() {
