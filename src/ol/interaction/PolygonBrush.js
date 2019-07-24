@@ -14,49 +14,37 @@ import {fromCircle} from '../geom/Polygon.js';
 import {union} from '../geom/flat/union.js';
 import {createEditingStyle} from '../style/Style.js';
 
-
-const ZoomDirection = {
-  UP: 'up',
-  DOWN: 'down'
-};
-
+const MIN_BRUSH_SIZE = 5;
+const BRUSH_RESIZE_STEP = 10;
 
 class PolygonBrush extends Draw {
 
   constructor(options) {
-
     super(options);
-
-    this.setMap(options.map);
-
-    this.mode_ = null;
-
-    this.resolution_ = this.getMap().getView().getResolution();
-
     this.overlay_.setStyle(options.style ? options.style : getDefaultStyleFunction());
+    this.sketchPointRadius_ = options.brushRadius ? options.brushRadius : 100;
+  }
 
-    this.circleRadius_ = this.resolution_ * 100; //TODO find a good factor
-
-    this.zoomDirection_ = null;
+  setMap(map) {
+    super.setMap(map);
+    if (map) {
+      map.getView().on('change:resolution', this.updateRelativeSketchPointRadius_.bind(this));
+    }
   }
 
   handleEvent(event) {
     const type = event.type;
     let pass = true;
     if (shiftKeyOnly(event) && type === EventType.WHEEL) {
-      this.updateSketchPointRadius_(event);
+      this.updateAbsoluteSketchPointRadius_(event);
       pass = false;
     }
 
     if (event.type === MapBrowserEventType.POINTERDRAG && this.handlingDownUpSequence) {
       pass = false;
     }
-    let passSuper = super.handleEvent(event);
-    if (!shiftKeyOnly(event) && event.type === EventType.WHEEL) {
-      this.fitSketchPointRadius_(event);
-      pass = true;
-    }
-    return passSuper && pass;
+
+    return super.handleEvent(event) && pass;
   }
 
   /**
@@ -92,7 +80,8 @@ class PolygonBrush extends Draw {
   createOrUpdateSketchPoint_(event) {
     const coordinates = event.coordinate.slice();
     if (!this.sketchPoint_) {
-      this.sketchPoint_ = new Feature(new Circle(coordinates, this.circleRadius_));
+      let relativeRadius = event.map.getView().getResolution() * this.sketchPointRadius_;
+      this.sketchPoint_ = new Feature(new Circle(coordinates, relativeRadius));
       this.updateSketchFeatures_();
     } else {
       const sketchPointGeom = this.sketchPoint_.getGeometry();
@@ -100,54 +89,34 @@ class PolygonBrush extends Draw {
     }
   }
 
-  fitSketchPointRadius_(event) {
-    let radiusFactor = this.getMap().getView().getResolution() / this.resolution_;
-    let zoomDirection = null;
-    if (event.originalEvent.deltaY > 0) {
-      zoomDirection = ZoomDirection.UP;
-      if (this.zoomDirection_ === null) {
-        radiusFactor = radiusFactor * 2;
-      }
-      else if (this.zoomDirection_ !== zoomDirection) {
-        radiusFactor = radiusFactor * 4;
-      }
-    }
-    if (event.originalEvent.deltaY < 0) {
-      zoomDirection = ZoomDirection.DOWN;
-      if (this.zoomDirection_ === null) {
-        radiusFactor = radiusFactor * 0.5;
-      }
-      else if (this.zoomDirection_ !== zoomDirection) {
-        radiusFactor = radiusFactor * 0.25;
-      }
-    }
+  updateRelativeSketchPointRadius_(event) {
     if (this.sketchPoint_) {
-      const sketchPointGeom = this.sketchPoint_.getGeometry();
-      this.circleRadius_ = this.circleRadius_ * radiusFactor;
-      this.resolution_ = this.getMap().getView().getResolution();
-      sketchPointGeom.setRadius(this.circleRadius_);
-      this.zoom_ = this.getMap().getView().getZoom();
+      this.sketchPoint_.getGeometry().setRadius(
+        this.sketchPointRadius_ * event.target.getResolution()
+      );
     }
-    this.zoomDirection_ = zoomDirection;
   }
 
-  updateSketchPointRadius_(event) {
+  updateAbsoluteSketchPointRadius_(event) {
     if (this.sketchPoint_) {
-      const sketchPointGeom = this.sketchPoint_.getGeometry();
       if (event.originalEvent.deltaY > 0) {
-        this.circleRadius_ = sketchPointGeom.getRadius() + sketchPointGeom.getRadius() / 10;
+        this.sketchPointRadius_ += BRUSH_RESIZE_STEP;
       }
       if (event.originalEvent.deltaY < 0) {
-        this.circleRadius_ = sketchPointGeom.getRadius() - sketchPointGeom.getRadius() / 10;
+        this.sketchPointRadius_ = Math.max(
+          this.sketchPointRadius_ - BRUSH_RESIZE_STEP,
+          MIN_BRUSH_SIZE
+        );
       }
-      sketchPointGeom.setRadius(this.circleRadius_);
+      this.sketchPoint_.getGeometry().setRadius(
+        this.sketchPointRadius_ * event.map.getView().getResolution()
+      );
     }
   }
 
   startDrawing_(event) {
     const start = event.coordinate;
     this.finishCoordinate_ = start;
-
     this.sketchFeature_ = new Feature(fromCircle(this.sketchPoint_.getGeometry()));
     this.updateSketchFeatures_();
     this.dispatchEvent(new DrawEvent(DrawEventType.DRAWSTART, this.sketchFeature_));
@@ -177,7 +146,6 @@ class PolygonBrush extends Draw {
   finishDrawing() {
     const sketchFeature = this.abortDrawing_();
     if (!sketchFeature) {
-
       return;
     }
 
@@ -199,7 +167,6 @@ function getDefaultStyleFunction() {
       );
 
   return function(feature, resolution) {
-
     return styles[feature.getGeometry().getType()];
   };
 }
