@@ -6,13 +6,13 @@ import {DrawEvent} from './Draw.js';
 import {DrawEventType} from './Draw.js';
 import Circle from '../geom/Circle.js';
 import Feature from '../Feature.js';
-import Polygon from '../geom/Polygon.js'
 import MapBrowserEventType from '../MapBrowserEventType.js';
 import EventType from '../events/EventType.js';
 import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js';
 import {union} from '../geom/flat/union.js';
 import {createEditingStyle} from '../style/Style.js';
+import VectorLayer from '../layer/Vector.js';
 
 const MIN_BRUSH_SIZE = 5;
 const BRUSH_RESIZE_STEP = 10;
@@ -21,7 +21,14 @@ class PolygonBrush extends Draw {
 
   constructor(options) {
     super(options);
-    this.overlay_.setStyle(options.style ? options.style : getDefaultStyleFunction());
+
+    // Override the default overlay to set updateWhileAnimating.
+    this.overlay_ = new VectorLayer({
+      source: this.overlay_.getSource(),
+      style: options.style ? options.style : getDefaultStyleFunction(),
+      updateWhileAnimating: true,
+      updateWhileInteracting: true
+    });
     this.sketchPointRadius_ = options.brushRadius ? options.brushRadius : 100;
   }
 
@@ -137,8 +144,9 @@ class PolygonBrush extends Draw {
       const sketchFeatureGeometry = this.sketchFeature_.getGeometry();
       const sketchFeaturePolygon = turfPolygon(sketchFeatureGeometry.getCoordinates());
       if (booleanOverlap(sketchPointPolygon, sketchFeaturePolygon)) {
-          var coords = union(sketchPointPolygon, sketchFeaturePolygon);
-          sketchFeatureGeometry.setCoordinates(coords);
+          sketchFeatureGeometry.setCoordinates(
+            union(sketchPointPolygon, sketchFeaturePolygon)
+          );
       }
     }
   }
