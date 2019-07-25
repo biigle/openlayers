@@ -12,19 +12,20 @@ export function difference(first, second) {
   second.geometry.coordinates = reducePrecision(second.geometry.coordinates);
 
   var differencePolygon = turfDifference(first, second);
+
+  // Return the larger part if a polygon has been split by the difference operation.
   if (differencePolygon.geometry.type === 'MultiPolygon') {
       var maxArea = 0;
-      var maxPoly;
+      var maxCoords;
       for (var i = 0; i < differencePolygon.geometry.coordinates.length; i++) {
-          var second = turfPolygon(differencePolygon.geometry.coordinates[i]);
-          var olPoly = new Polygon(differencePolygon.geometry.coordinates[i]);
-          var area = olPoly.getArea();
+          var area = (new Polygon(differencePolygon.geometry.coordinates[i])).getArea();
           if (area > maxArea) {
               maxArea = area;
-              maxPoly = second;
+              maxCoords = differencePolygon.geometry.coordinates[i];
           }
       }
-      differencePolygon = maxPoly;
+
+      return maxCoords;
   }
 
   return differencePolygon.geometry.coordinates;
