@@ -164,6 +164,10 @@ class ModifyPolygonBrush extends Modify {
       } else if (booleanContains(sketchPointPolygon, featurePolygon)) {
         if (this.subtractCondition_()) {
           if (this.allowRemove_) {
+            this.features_.remove(feature);
+            if (this.source_) {
+              this.source_.removeFeature(feature);
+            }
             this.dispatchEvent(
               new ModifyEvent(ModifyPolygonBrushEventType.MODIFYREMOVE, new Collection([feature]), event)
             );
