@@ -17,15 +17,7 @@ import {difference} from '../geom/flat/difference.js';
 import {always} from '../events/condition.js';
 import Collection from '../Collection.js';
 
-/**
- * @enum {string}
- */
 export const ModifyPolygonBrushEventType = {
-  /**
-   * Triggered upon feature modification start
-   * @event ModifyPolygonBrushEvent#modifyremove
-   * @api
-   */
   MODIFYREMOVE: 'modifyremove',
 };
 
@@ -33,9 +25,6 @@ const MIN_BRUSH_SIZE = 5;
 const BRUSH_RESIZE_STEP = 10;
 
 class ModifyPolygonBrush extends Modify {
-  /**
-   * @param {Options} options Options.
-   */
   constructor(options) {
 
     super(options);
@@ -49,6 +38,8 @@ class ModifyPolygonBrush extends Modify {
       options.addCondition : always;
     this.subtractCondition_ = options.subtractCondition !== undefined ?
       options.subtractCondition : always;
+    this.resizeCondition_ = options.resizeCondition !== undefined ?
+      options.resizeCondition : shiftKeyOnly;
     this.allowRemove_ = options.allowRemove !== undefined ?
       options.allowRemove : true;
 
@@ -101,7 +92,7 @@ class ModifyPolygonBrush extends Modify {
   handleEvent(event) {
     const type = event.type;
     let pass = true;
-    if (shiftKeyOnly(event) && type === EventType.WHEEL) {
+    if (this.resizeCondition_(event) && type === EventType.WHEEL) {
       this.updateAbsoluteSketchPointRadius_(event);
       pass = false;
     }

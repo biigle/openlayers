@@ -29,7 +29,11 @@ class PolygonBrush extends Draw {
       updateWhileAnimating: true,
       updateWhileInteracting: true
     });
-    this.sketchPointRadius_ = options.brushRadius ? options.brushRadius : 100;
+
+    this.sketchPointRadius_ = options.brushRadius !== undefined ?
+      options.brushRadius : 100;
+    this.resizeCondition_ = options.resizeCondition !== undefined ?
+      options.resizeCondition : shiftKeyOnly;
   }
 
   setMap(map) {
@@ -42,7 +46,7 @@ class PolygonBrush extends Draw {
   handleEvent(event) {
     const type = event.type;
     let pass = true;
-    if (shiftKeyOnly(event) && type === EventType.WHEEL) {
+    if (this.resizeCondition_(event) && type === EventType.WHEEL) {
       this.updateAbsoluteSketchPointRadius_(event);
       pass = false;
     }
@@ -54,9 +58,6 @@ class PolygonBrush extends Draw {
     return super.handleEvent(event) && pass;
   }
 
-  /**
-   * @inheritDoc
-   */
   handleDownEvent(event) {
     if (!this.handlingDownUpSequence) {
       this.startDrawing_(event);
@@ -67,9 +68,6 @@ class PolygonBrush extends Draw {
     return false;
   }
 
-  /**
-   * @inheritDoc
-   */
   handleUpEvent(event) {
     if (this.handlingDownUpSequence) {
       this.finishDrawing();
@@ -80,10 +78,6 @@ class PolygonBrush extends Draw {
     return false;
   }
 
-  /**
-   * @param {import("../MapBrowserEvent.js").default} event Event.
-   * @private
-   */
   createOrUpdateSketchPoint_(event) {
     const coordinates = event.coordinate.slice();
     if (!this.sketchPoint_) {
@@ -129,12 +123,6 @@ class PolygonBrush extends Draw {
     this.dispatchEvent(new DrawEvent(DrawEventType.DRAWSTART, this.sketchFeature_));
   }
 
-  /**
-   * Stop drawing and add the sketch feature to the target layer.
-   * The {@link module:ol/interaction/Draw~DrawEventType.DRAWEND} event is
-   * dispatched before inserting the feature.
-   * @api
-   */
   handlePointerMove_(event) {
     this.createOrUpdateSketchPoint_(event);
 
