@@ -58,6 +58,12 @@ function addInteractions() {
       map: map,
     });
     map.addInteraction(modify);
+
+    modify.on('modifyremove', function (event) {
+      event.features.forEach(function (feature) {
+        source.removeFeature(feature);
+      });
+    });
   }
 }
 

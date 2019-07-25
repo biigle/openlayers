@@ -13,7 +13,7 @@ import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js'
 import {union} from '../geom/flat/union.js';
 import {difference} from '../geom/flat/difference.js';
-import {always, never} from '../events/condition.js';
+import {always} from '../events/condition.js';
 import Collection from '../Collection.js';
 
 /**
@@ -40,7 +40,6 @@ class ModifyPolygonBrush extends Modify {
     super(options);
 
     this.overlay_.setStyle(options.style ? options.style : getDefaultStyleFunction());
-    this.deleteCondition_ = never;
 
     this.sketchPoint_ = null;
     this.sketchPointRadius_ = options.brushRadius ? options.brushRadius : 100;
@@ -137,33 +136,36 @@ class ModifyPolygonBrush extends Modify {
   }
 
   modifyCurrentFeatures_(event) {
+    if (this.features_.getLength() > 0) {
+      this.willModifyFeatures_(event);
+    }
+
     const sketchPointGeom = fromCircle(this.sketchPoint_.getGeometry());
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
     this.features_.getArray().forEach(function (feature) {
-        let featurePolygon = turfPolygon(feature.getGeometry().getCoordinates());
-        if (booleanOverlap(sketchPointPolygon, featurePolygon)) {
-          if (this.subtractCondition_()) {
-            var coords = difference(featurePolygon, sketchPointPolygon);
-          } else if (this.addCondition_()) {
-            var coords = union(sketchPointPolygon, featurePolygon);
-          }
-          feature.getGeometry().setCoordinates(coords);
-        } else if (booleanContains(sketchPointPolygon, featurePolygon)) {
-          if (this.subtractCondition_()) {
-            this.features_.remove(feature);
-            this.dispatchEvent(
-              new ModifyEvent(ModifyPolygonBrushEventType.MODIFYREMOVE, new Collection([feature]), event)
-            );
-          } else if (this.addCondition_()) {
-            feature.getGeometry().setCoordinates(sketchPointGeom.getCoordinates());
-          }
+      let featurePolygon = turfPolygon(feature.getGeometry().getCoordinates());
+      if (booleanOverlap(sketchPointPolygon, featurePolygon)) {
+        if (this.subtractCondition_()) {
+          var coords = difference(featurePolygon, sketchPointPolygon);
+        } else if (this.addCondition_()) {
+          var coords = union(sketchPointPolygon, featurePolygon);
         }
+        feature.getGeometry().setCoordinates(coords);
+      } else if (booleanContains(sketchPointPolygon, featurePolygon)) {
+        if (this.subtractCondition_()) {
+          this.dispatchEvent(
+            new ModifyEvent(ModifyPolygonBrushEventType.MODIFYREMOVE, new Collection([feature]), event)
+          );
+        } else if (this.addCondition_()) {
+          feature.getGeometry().setCoordinates(sketchPointGeom.getCoordinates());
+        }
+      }
     }, this);
   }
 
   finishModifying_(event) {
-      this.createOrUpdateSketchPoint_(event);
-      this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
+    this.createOrUpdateSketchPoint_(event);
+    this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
   }
 }
 
