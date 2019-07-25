@@ -49,8 +49,19 @@ class PolygonBrush extends Draw {
   setMap(map) {
     super.setMap(map);
     if (map) {
-      map.getView().on('change:resolution', this.updateRelativeSketchPointRadius_.bind(this));
+      let view = map.getView();
+      if (view) {
+        this.watchViewForChangedResolution(view);
+      }
+
+      map.on('change:view', (function (e) {
+        this.watchViewForChangedResolution(e.target.getView());
+      }).bind(this));
     }
+  }
+
+  watchViewForChangedResolution(view) {
+    view.on('change:resolution', this.updateRelativeSketchPointRadius_.bind(this));
   }
 
   handleEvent(event) {
