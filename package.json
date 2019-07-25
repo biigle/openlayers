@@ -34,6 +34,11 @@
     "url": "https://github.com/openlayers/openlayers/issues"
   },
   "dependencies": {
+    "@turf/difference": "6.0.1",
+    "@turf/helpers": "^6.1.4",
+    "@turf/union": "^6.0.3",
+    "@turf/boolean-contains": "^6.0.1",
+    "@turf/boolean-overlap": "^6.0.1",
     "pbf": "3.1.0",
     "pixelworks": "1.1.0",
     "rbush": "2.0.2"
