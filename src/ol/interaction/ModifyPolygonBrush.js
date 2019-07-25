@@ -1,3 +1,6 @@
+/**
+ * @module ol/interaction/ModifyPolygonBrush
+ */
 import {polygon as turfPolygon} from '@turf/helpers'
 import booleanContains from '@turf/boolean-contains'
 import booleanOverlap from '@turf/boolean-overlap'
@@ -24,6 +27,13 @@ export const ModifyPolygonBrushEventType = {
 const MIN_BRUSH_SIZE = 5;
 const BRUSH_RESIZE_STEP = 10;
 
+/**
+ * @classdesc
+ * Interaction for modifying polygons with a brush.
+ *
+ * @fires ModifyEvent
+ * @api
+ */
 class ModifyPolygonBrush extends Modify {
   constructor(options) {
 

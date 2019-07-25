@@ -1,3 +1,6 @@
+/**
+ * @module ol/interaction/PolygonBrush
+ */
 import {polygon as turfPolygon} from '@turf/helpers'
 import GeometryType from '../geom/GeometryType.js';
 import booleanOverlap from '@turf/boolean-overlap'
@@ -17,6 +20,13 @@ import VectorLayer from '../layer/Vector.js';
 const MIN_BRUSH_SIZE = 5;
 const BRUSH_RESIZE_STEP = 10;
 
+/**
+ * @classdesc
+ * Interaction for drawing polygons with a brush.
+ *
+ * @fires DrawEvent
+ * @api
+ */
 class PolygonBrush extends Draw {
 
   constructor(options) {
