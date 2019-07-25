@@ -1,6 +1,5 @@
 import turfDifference from '@turf/difference';
 import {polygon as turfPolygon} from '@turf/helpers';
-import Feature from '../../Feature.js';
 import Polygon from '../Polygon.js';
 import {reducePrecision} from './simplify.js';
 
@@ -18,8 +17,8 @@ export function difference(first, second) {
       var maxPoly;
       for (var i = 0; i < differencePolygon.geometry.coordinates.length; i++) {
           var second = turfPolygon(differencePolygon.geometry.coordinates[i]);
-          var olPoly = new Feature(new Polygon(differencePolygon.geometry.coordinates[i]));
-          var area = olPoly.getGeometry().getArea();
+          var olPoly = new Polygon(differencePolygon.geometry.coordinates[i]);
+          var area = olPoly.getArea();
           if (area > maxArea) {
               maxArea = area;
               maxPoly = second;

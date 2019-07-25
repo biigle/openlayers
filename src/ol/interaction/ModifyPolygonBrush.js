@@ -5,6 +5,7 @@ import Feature from '../Feature.js';
 import EventType from '../events/EventType.js';
 import GeometryType from '../geom/GeometryType.js';
 import Circle from '../geom/Circle.js';
+import Polygon from '../geom/Polygon.js';
 import {createEditingStyle} from '../style/Style.js';
 import Modify from './Modify.js'
 import {ModifyEvent} from './Modify.js'
@@ -42,9 +43,15 @@ class ModifyPolygonBrush extends Modify {
     this.overlay_.setStyle(options.style ? options.style : getDefaultStyleFunction());
 
     this.sketchPoint_ = null;
-    this.sketchPointRadius_ = options.brushRadius ? options.brushRadius : 100;
-    this.addCondition_ = options.addCondition ? options.addCondition : always;
-    this.subtractCondition_ = options.subtractCondition ? options.subtractCondition : always;
+    this.sketchPointRadius_ = options.brushRadius !== undefined ?
+      options.brushRadius : 100;
+    this.addCondition_ = options.addCondition !== undefined ?
+      options.addCondition : always;
+    this.subtractCondition_ = options.subtractCondition !== undefined ?
+      options.subtractCondition : always;
+    this.allowRemove_ = options.allowRemove !== undefined ?
+      options.allowRemove : true;
+
   }
 
   setMap(map) {
@@ -127,6 +134,7 @@ class ModifyPolygonBrush extends Modify {
   }
 
   startModifying_(event) {
+    this.willModifyFeatures_(event);
     this.modifyCurrentFeatures_(event);
   }
 
@@ -136,26 +144,30 @@ class ModifyPolygonBrush extends Modify {
   }
 
   modifyCurrentFeatures_(event) {
-    if (this.features_.getLength() > 0) {
-      this.willModifyFeatures_(event);
-    }
-
     const sketchPointGeom = fromCircle(this.sketchPoint_.getGeometry());
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
+    let sketchPointArea = sketchPointGeom.getArea();
     this.features_.getArray().forEach(function (feature) {
       let featurePolygon = turfPolygon(feature.getGeometry().getCoordinates());
       if (booleanOverlap(sketchPointPolygon, featurePolygon)) {
         if (this.subtractCondition_()) {
           var coords = difference(featurePolygon, sketchPointPolygon);
+          if (!this.allowRemove_ && sketchPointArea > (new Polygon(coords)).getArea()) {
+            // If allowRemove_ is false, the modified polygon may not become smaller than
+            // the sketchPointPolygon.
+            return;
+          }
         } else if (this.addCondition_()) {
           var coords = union(sketchPointPolygon, featurePolygon);
         }
         feature.getGeometry().setCoordinates(coords);
       } else if (booleanContains(sketchPointPolygon, featurePolygon)) {
         if (this.subtractCondition_()) {
-          this.dispatchEvent(
-            new ModifyEvent(ModifyPolygonBrushEventType.MODIFYREMOVE, new Collection([feature]), event)
-          );
+          if (this.allowRemove_) {
+            this.dispatchEvent(
+              new ModifyEvent(ModifyPolygonBrushEventType.MODIFYREMOVE, new Collection([feature]), event)
+            );
+          }
         } else if (this.addCondition_()) {
           feature.getGeometry().setCoordinates(sketchPointGeom.getCoordinates());
         }
@@ -164,7 +176,6 @@ class ModifyPolygonBrush extends Modify {
   }
 
   finishModifying_(event) {
-    this.createOrUpdateSketchPoint_(event);
     this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
   }
 }
