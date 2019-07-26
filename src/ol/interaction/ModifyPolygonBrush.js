@@ -182,7 +182,13 @@ class ModifyPolygonBrush extends Modify {
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
     let sketchPointArea = sketchPointGeom.getArea();
     this.features_.getArray().forEach(function (feature) {
-      let featurePolygon = turfPolygon(feature.getGeometry().getCoordinates());
+      let featureGeom = feature.getGeometry();
+      try {
+        var featurePolygon = turfPolygon(featureGeom.getCoordinates());
+      } catch (e) {
+        // Skip features that can't be represented as polygon.
+        return;
+      }
       if (booleanOverlap(sketchPointPolygon, featurePolygon)) {
         var coords = difference(featurePolygon, sketchPointPolygon);
         if (!this.allowRemove_ && sketchPointArea > (new Polygon(coords)).getArea()) {
@@ -190,7 +196,7 @@ class ModifyPolygonBrush extends Modify {
           // the sketchPointPolygon.
           return;
         }
-        feature.getGeometry().setCoordinates(coords);
+        featureGeom.setCoordinates(coords);
       } else if (booleanContains(sketchPointPolygon, featurePolygon)) {
         if (this.allowRemove_) {
           this.features_.remove(feature);
@@ -209,11 +215,17 @@ class ModifyPolygonBrush extends Modify {
     const sketchPointGeom = fromCircle(this.sketchPoint_.getGeometry());
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
     this.features_.getArray().forEach(function (feature) {
-      let featurePolygon = turfPolygon(feature.getGeometry().getCoordinates());
+      let featureGeom = feature.getGeometry();
+      try {
+        var featurePolygon = turfPolygon(featureGeom.getCoordinates());
+      } catch (e) {
+        // Skip features that can't be represented as polygon.
+        return;
+      }
       if (booleanOverlap(sketchPointPolygon, featurePolygon)) {
-        feature.getGeometry().setCoordinates(union(sketchPointPolygon, featurePolygon));
+        featureGeom.setCoordinates(union(sketchPointPolygon, featurePolygon));
       } else if (booleanContains(sketchPointPolygon, featurePolygon)) {
-        feature.getGeometry().setCoordinates(sketchPointGeom.getCoordinates());
+        featureGeom.setCoordinates(sketchPointGeom.getCoordinates());
       }
     }, this);
   }
