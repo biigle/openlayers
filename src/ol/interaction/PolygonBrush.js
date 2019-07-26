@@ -16,6 +16,7 @@ import {fromCircle} from '../geom/Polygon.js';
 import {union} from '../geom/flat/union.js';
 import {createEditingStyle} from '../style/Style.js';
 import VectorLayer from '../layer/Vector.js';
+import {always} from '../events/condition.js';
 
 const MIN_BRUSH_SIZE = 5;
 const BRUSH_RESIZE_STEP = 10;
@@ -42,8 +43,12 @@ class PolygonBrush extends Draw {
 
     this.sketchPointRadius_ = options.brushRadius !== undefined ?
       options.brushRadius : 100;
+    this.condition_ = options.condition !== undefined ?
+      options.condition : always;
     this.resizeCondition_ = options.resizeCondition !== undefined ?
       options.resizeCondition : shiftKeyOnly;
+
+    this.isDrawing_ = false;
   }
 
   setMap(map) {
@@ -81,16 +86,18 @@ class PolygonBrush extends Draw {
 
   handleDownEvent(event) {
     if (!this.handlingDownUpSequence) {
-      this.startDrawing_(event);
+      if (this.condition_(event)) {
+        this.startDrawing_(event);
 
-      return true;
+        return true;
+      }
     }
 
     return false;
   }
 
   handleUpEvent(event) {
-    if (this.handlingDownUpSequence) {
+    if (this.handlingDownUpSequence && this.isDrawing_) {
       this.finishDrawing();
 
       return true;
@@ -137,6 +144,8 @@ class PolygonBrush extends Draw {
   }
 
   startDrawing_(event) {
+    this.isDrawing_ = true;
+    this.createOrUpdateSketchPoint_(event);
     const start = event.coordinate;
     this.finishCoordinate_ = start;
     this.sketchFeature_ = new Feature(fromCircle(this.sketchPoint_.getGeometry()));
@@ -147,7 +156,7 @@ class PolygonBrush extends Draw {
   handlePointerMove_(event) {
     this.createOrUpdateSketchPoint_(event);
 
-    if (this.sketchFeature_) {
+    if (this.isDrawing_ && this.sketchFeature_) {
       const sketchPointGeometry = fromCircle(this.sketchPoint_.getGeometry());
       const sketchPointPolygon = turfPolygon(sketchPointGeometry.getCoordinates());
       const sketchFeatureGeometry = this.sketchFeature_.getGeometry();
@@ -161,6 +170,7 @@ class PolygonBrush extends Draw {
   }
 
   finishDrawing() {
+    this.isDrawing_ = false;
     const sketchFeature = this.abortDrawing_();
     if (!sketchFeature) {
       return;
