@@ -235,6 +235,10 @@ class ModifyPolygonBrush extends Modify {
     this.isAdding_ = false;
     this.dispatchEvent(new ModifyEvent(ModifyEventType.MODIFYEND, this.features_, event));
   }
+
+  getBrushRadius() {
+    return this.sketchPointRadius_;
+  }
 }
 
 function getDefaultStyleFunction() {

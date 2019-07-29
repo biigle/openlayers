@@ -184,6 +184,10 @@ class PolygonBrush extends Draw {
       this.source_.addFeature(sketchFeature);
     }
   }
+
+  getBrushRadius() {
+    return this.sketchPointRadius_;
+  }
 }
 
 function getDefaultStyleFunction() {
