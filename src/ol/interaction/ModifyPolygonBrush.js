@@ -97,11 +97,23 @@ class ModifyPolygonBrush extends Modify {
   }
 
   updateAbsoluteSketchPointRadius_(event) {
+    let delta = event.originalEvent.deltaY;
+    // Take the delta from deltaX if deltyY is 0 because some systems toggle the scroll
+    // direction with certain keys pressed (e.g. Mac with Shift+Scroll).
+    if (event.type == EventType.MOUSEWHEEL) {
+      delta = -event.originalEvent.wheelDeltaY;
+      if (delta === 0) {
+        delta = -event.originalEvent.wheelDeltaX;
+      }
+    } else if (delta === 0) {
+      delta = event.originalEvent.deltaX;
+    }
+
     if (this.sketchPoint_) {
-      if (event.originalEvent.deltaY > 0) {
+      if (delta > 0) {
         this.sketchPointRadius_ += BRUSH_RESIZE_STEP;
       }
-      if (event.originalEvent.deltaY < 0) {
+      if (delta < 0) {
         this.sketchPointRadius_ = Math.max(
           this.sketchPointRadius_ - BRUSH_RESIZE_STEP,
           MIN_BRUSH_SIZE
@@ -116,7 +128,8 @@ class ModifyPolygonBrush extends Modify {
   handleEvent(event) {
     const type = event.type;
     let pass = true;
-    if (this.resizeCondition_(event) && type === EventType.WHEEL) {
+    if (this.resizeCondition_(event) &&
+      (type === EventType.WHEEL || EventType.MOUSEWHEEL)) {
       this.updateAbsoluteSketchPointRadius_(event);
       pass = false;
     }
