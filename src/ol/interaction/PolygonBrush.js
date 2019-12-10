@@ -16,7 +16,7 @@ import {fromCircle} from '../geom/Polygon.js';
 import {union} from '../geom/flat/union.js';
 import {createEditingStyle} from '../style/Style.js';
 import VectorLayer from '../layer/Vector.js';
-import {always} from '../events/condition.js';
+import {always, penOrShift} from '../events/condition.js';
 
 const MIN_BRUSH_SIZE = 5;
 const BRUSH_RESIZE_STEP = 5;
@@ -60,6 +60,10 @@ export function getNewSketchPointRadius(event, radius) {
 class PolygonBrush extends Draw {
 
   constructor(options) {
+
+    options.freehandCondition = options.freehandCondition ?
+      options.freehandCondition : penOrShift;
+
     super(options);
 
     // Override the default overlay to set updateWhileAnimating.
