@@ -232,17 +232,17 @@ export const mouseOnly = function(mapBrowserEvent) {
 
 
 /**
- * Return `true` if the event originates from a digital pen or the shift key is pressed.
+ * Return `true` if the event originates from a digital pen.
  *
  * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
- * @return {boolean} True if the event originates from a digital pen or the shift key is pressed.
+ * @return {boolean} True if the event originates from a digital pen.
  * @api
  */
-export const penOrShift = function(mapBrowserEvent) {
+export const penOnly = function(mapBrowserEvent) {
   const pointerEvt = /** @type {import("../MapBrowserPointerEvent").default} */ (mapBrowserEvent).pointerEvent;
   assert(pointerEvt !== undefined, 56); // mapBrowserEvent must originate from a pointer event
   // see http://www.w3.org/TR/pointerevents/#widl-PointerEvent-pointerType
-  return pointerEvt.pointerType === 'pen' || pointerEvt.shiftKey;
+  return pointerEvt.pointerType === 'pen';
 };
 
 

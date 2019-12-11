@@ -17,9 +17,11 @@ import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js'
 import {union} from '../geom/flat/union.js';
 import {difference} from '../geom/flat/difference.js';
-import {always} from '../events/condition.js';
+import {always, penOnly} from '../events/condition.js';
 import Collection from '../Collection.js';
 import {getNewSketchPointRadius} from './PolygonBrush.js';
+
+const MIN_BRUSH_SIZE = 5;
 
 export const ModifyPolygonBrushEventType = {
   MODIFYREMOVE: 'modifyremove',
@@ -35,12 +37,17 @@ export const ModifyPolygonBrushEventType = {
 class ModifyPolygonBrush extends Modify {
   constructor(options) {
 
+    options.freehandCondition = options.freehandCondition ?
+      options.freehandCondition : penOnly;
+
     super(options);
 
     this.overlay_.setStyle(options.style ? options.style : getDefaultStyleFunction());
 
     this.sketchPoint_ = null;
     this.sketchPointRadius_ = options.brushRadius !== undefined ?
+      options.brushRadius : 100;
+    this.sketchRadius_ = options.brushRadius !== undefined ?
       options.brushRadius : 100;
     this.addCondition_ = options.addCondition !== undefined ?
       options.addCondition : always;
@@ -103,12 +110,36 @@ class ModifyPolygonBrush extends Modify {
     }
   }
 
+  updateSketchRadiusByPressure_(event) {
+    if (this.sketchPoint_ && event.pointerEvent.pressure != 0) {
+      this.sketchPointRadius_ = getNewSketchPointRadius(event, this.sketchPointRadius_);
+      this.sketchRadius_ = Math.max(
+                             this.sketchPointRadius_ * event.pointerEvent.pressure,
+                             MIN_BRUSH_SIZE
+                           ) * event.map.getView().getResolution();
+    }
+  }
+
+  getSketchGeometry(event) {
+    var sketchGeometry  = this.sketchPoint_.getGeometry();
+    if (event.originalEvent.pointerType === 'pen') {
+      sketchGeometry = this.sketchPoint_.clone().getGeometry();
+      sketchGeometry.setRadius(this.sketchRadius_);
+    }
+    return sketchGeometry;
+  }
+
   handleEvent(event) {
     const type = event.type;
     let pass = true;
     if (this.resizeCondition_(event) &&
       (type === EventType.WHEEL || EventType.MOUSEWHEEL)) {
       this.updateAbsoluteSketchPointRadius_(event);
+      pass = false;
+    }
+
+    if (penOnly(event)) {
+      this.updateSketchRadiusByPressure_(event);
       pass = false;
     }
 
@@ -169,7 +200,7 @@ class ModifyPolygonBrush extends Modify {
   }
 
   subtractCurrentFeatures_(event) {
-    const sketchPointGeom = fromCircle(this.sketchPoint_.getGeometry());
+    const sketchPointGeom = fromCircle(this.getSketchGeometry(event));
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
     let sketchPointArea = sketchPointGeom.getArea();
     this.features_.getArray().forEach(function (feature) {
@@ -203,7 +234,7 @@ class ModifyPolygonBrush extends Modify {
   }
 
   addCurrentFeatures_(event) {
-    const sketchPointGeom = fromCircle(this.sketchPoint_.getGeometry());
+    const sketchPointGeom = fromCircle(this.getSketchGeometry(event));
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
     this.features_.getArray().forEach(function (feature) {
       let featureGeom = feature.getGeometry();
