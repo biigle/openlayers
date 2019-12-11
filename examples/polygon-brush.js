@@ -1,11 +1,9 @@
 import Map from '../src/ol/Map.js';
 import View from '../src/ol/View.js';
 import PolygonBrush from '../src/ol/interaction/PolygonBrush.js'
-import {Draw, Snap} from '../src/ol/interaction.js';
+import ModifyPolygonBrush from '../src/ol/interaction/ModifyPolygonBrush.js';
 import {Tile as TileLayer, Vector as VectorLayer} from '../src/ol/layer.js';
 import {OSM, Vector as VectorSource} from '../src/ol/source.js';
-import {Circle as CircleStyle, Fill, Stroke, Style} from '../src/ol/style.js';
-import ModifyPolygonBrush from '../src/ol/interaction/ModifyPolygonBrush.js';
 import {always, never} from '../src/ol/events/condition.js';
 
 const raster = new TileLayer({
@@ -26,9 +24,7 @@ const map = new Map({
   })
 });
 
-let modify;
-
-let draw, snap; // global so we can remove them later
+let draw, modify; // global so we can remove them later
 const typeSelect = document.getElementById('type');
 
 function addInteractions() {
@@ -36,7 +32,6 @@ function addInteractions() {
   if (value === 'Draw') {
     draw = new PolygonBrush({
       source: source,
-      type: 'Point',
       map: map,
     });
     map.addInteraction(draw);
