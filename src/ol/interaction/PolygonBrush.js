@@ -1,9 +1,10 @@
 /**
  * @module ol/interaction/PolygonBrush
  */
-import {polygon as turfPolygon} from '@turf/helpers'
+import {polygon as turfPolygon} from '@turf/helpers';
 import GeometryType from '../geom/GeometryType.js';
-import booleanOverlap from '@turf/boolean-overlap'
+import booleanOverlap from '@turf/boolean-overlap';
+import booleanContains from '@turf/boolean-contains';
 import Draw from './Draw.js';
 import {DrawEvent} from './Draw.js';
 import {DrawEventType} from './Draw.js';
@@ -50,6 +51,18 @@ export function getNewSketchPointRadius(event, radius) {
   return radius;
 }
 
+export function getNewSketchPointRadiusByPressure(event, radius) {
+  if (event.pointerEvent.pressure != 0) {
+    radius = getNewSketchPointRadius(event, radius);
+    radius = Math.max(
+                           radius * event.pointerEvent.pressure,
+                           MIN_BRUSH_SIZE
+                         ) * event.map.getView().getResolution();
+  }
+
+  return radius;
+}
+
 /**
  * @classdesc
  * Interaction for drawing polygons with a brush.
@@ -76,14 +89,13 @@ class PolygonBrush extends Draw {
 
     this.sketchPointRadius_ = options.brushRadius !== undefined ?
       options.brushRadius : 100;
-    this.sketchRadius_ = options.brushRadius !== undefined ?
-      options.brushRadius : 100;
     this.condition_ = options.condition !== undefined ?
       options.condition : always;
     this.resizeCondition_ = options.resizeCondition !== undefined ?
       options.resizeCondition : shiftKeyOnly;
 
     this.isDrawing_ = false;
+    this.sketchCircle_ = null;
   }
 
   setMap(map) {
@@ -110,11 +122,6 @@ class PolygonBrush extends Draw {
     if (this.resizeCondition_(event) &&
       (type === EventType.WHEEL || EventType.MOUSEWHEEL)) {
       this.updateAbsoluteSketchPointRadius_(event);
-      pass = false;
-    }
-
-    if (event.originalEvent.pointerType === 'pen') {
-      this.updateSketchRadiusByPressure_(event);
       pass = false;
     }
 
@@ -176,22 +183,20 @@ class PolygonBrush extends Draw {
     }
   }
 
-  getSketchGeometry(event) {
-    var sketchGeometry  = this.sketchPoint_.getGeometry();
-    if (event.originalEvent.pointerType === 'pen') {
-      sketchGeometry = this.sketchPoint_.clone().getGeometry();
-      sketchGeometry.setRadius(this.sketchRadius_);
+  createOrUpdateSketchCircle_(event) {
+    const coordinates = event.coordinate.slice();
+    if (!this.sketchCircle_) {
+      this.sketchCircle_ = new Circle(coordinates,
+                                      this.sketchPoint_.getGeometry().getRadius());
     }
-    return sketchGeometry;
-  }
-
-  updateSketchRadiusByPressure_(event) {
-    if (this.sketchPoint_ && event.pointerEvent.pressure != 0) {
-      this.sketchPointRadius_ = getNewSketchPointRadius(event, this.sketchPointRadius_);
-      this.sketchRadius_ = Math.max(
-                             this.sketchPointRadius_ * event.pointerEvent.pressure,
-                             MIN_BRUSH_SIZE
-                           ) * event.map.getView().getResolution();
+    else {
+      this.sketchCircle_.setCenter(coordinates);
+      this.sketchCircle_.setRadius(this.sketchPoint_.getGeometry().getRadius())
+    }
+    if (event.originalEvent.pointerType === 'pen') {
+      this.sketchCircle_.setRadius(
+        getNewSketchPointRadiusByPressure(event, this.sketchPointRadius_)
+      );
     }
   }
 
@@ -200,8 +205,8 @@ class PolygonBrush extends Draw {
     this.createOrUpdateSketchPoint_(event);
     const start = event.coordinate;
     this.finishCoordinate_ = start;
-    const sketchGeometry = this.getSketchGeometry(event);
-    this.sketchFeature_ = new Feature(fromCircle(sketchGeometry));
+    this.createOrUpdateSketchCircle_(event);
+    this.sketchFeature_ = new Feature(fromCircle(this.sketchCircle_));
     this.updateSketchFeatures_();
     this.dispatchEvent(new DrawEvent(DrawEventType.DRAWSTART, this.sketchFeature_));
   }
@@ -210,14 +215,15 @@ class PolygonBrush extends Draw {
     this.createOrUpdateSketchPoint_(event);
 
     if (this.isDrawing_ && this.sketchFeature_) {
-      const sketchGeometry = this.getSketchGeometry(event);
-      const sketchPointGeometry = fromCircle(sketchGeometry);
-      const sketchPointPolygon = turfPolygon(sketchPointGeometry.getCoordinates());
+      this.createOrUpdateSketchCircle_(event);
+      const sketchCircleGeometry = fromCircle(this.sketchCircle_);
+      const sketchCirclePolygon = turfPolygon(sketchCircleGeometry.getCoordinates());
       const sketchFeatureGeometry = this.sketchFeature_.getGeometry();
       const sketchFeaturePolygon = turfPolygon(sketchFeatureGeometry.getCoordinates());
-      if (booleanOverlap(sketchPointPolygon, sketchFeaturePolygon)) {
+      if (booleanOverlap(sketchCirclePolygon, sketchFeaturePolygon)
+           || booleanContains(sketchCirclePolygon, sketchFeaturePolygon)) {
           sketchFeatureGeometry.setCoordinates(
-            union(sketchPointPolygon, sketchFeaturePolygon)
+            union(sketchCirclePolygon, sketchFeaturePolygon)
           );
       }
     }
@@ -244,13 +250,9 @@ class PolygonBrush extends Draw {
   }
 
   abortDrawing_() {
-    this.finishCoordinate_ = null;
-    const sketchFeature = this.sketchFeature_;
-    if (sketchFeature) {
-      this.sketchFeature_ = null;
-      this.sketchPoint_ = null;
-      this.sketchLine_ = null;
-    }
+    var sketchFeature = super.abortDrawing_();
+    this.sketchCircle_ = null;
+
     return sketchFeature;
   }
 }

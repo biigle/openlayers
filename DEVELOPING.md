@@ -52,3 +52,11 @@ implies creating two or three files in this directory, an `.html` file, a `.js`
 file, and, optionally, a `.css` file.
 
 You can use `simple.js` and `simple.html` as templates for new examples.
+
+## Build Openlayers for BIIGLE
+
+To build Openlayers for BIIGLE:
+
+    $ npm run build-legacy
+
+Copy the file `ol.js` to biigle/vendor/biigle/annotations/src/public/assets/scripts/.
