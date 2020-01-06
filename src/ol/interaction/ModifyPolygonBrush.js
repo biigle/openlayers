@@ -17,7 +17,7 @@ import {shiftKeyOnly} from '../events/condition.js';
 import {fromCircle} from '../geom/Polygon.js';
 import {union} from '../geom/flat/union.js';
 import {difference} from '../geom/flat/difference.js';
-import {always, penOnly} from '../events/condition.js';
+import {always} from '../events/condition.js';
 import Collection from '../Collection.js';
 import {getNewSketchPointRadius, getNewSketchPointRadiusByPressure} from './PolygonBrush.js';
 
@@ -34,9 +34,6 @@ export const ModifyPolygonBrushEventType = {
  */
 class ModifyPolygonBrush extends Modify {
   constructor(options) {
-
-    options.freehandCondition = options.freehandCondition ?
-      options.freehandCondition : penOnly;
 
     super(options);
 
