@@ -17,10 +17,26 @@ import {fromCircle} from '../geom/Polygon.js';
 import {union} from '../geom/flat/union.js';
 import {createEditingStyle} from '../style/Style.js';
 import VectorLayer from '../layer/Vector.js';
-import {always, penOnly} from '../events/condition.js';
+import {always} from '../events/condition.js';
 
 const MIN_BRUSH_SIZE = 5;
 const BRUSH_RESIZE_STEP = 5;
+
+/**
+ * Return `true` if the event originates from a digital pen.
+ *
+ * In contrast to the condition from ../events/condition.js this function does not assert
+ * that the event is a pointer event.
+ *
+ * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
+ * @return {boolean} True if the event originates from a digital pen.
+ * @api
+ */
+const penOnly = function(mapBrowserEvent) {
+  const pointerEvt = mapBrowserEvent.pointerEvent;
+  // see http://www.w3.org/TR/pointerevents/#widl-PointerEvent-pointerType
+  return pointerEvt && pointerEvt.pointerType === 'pen';
+};
 
 export function getNewSketchPointRadius(event, radius) {
   let delta = event.originalEvent.deltaY;
