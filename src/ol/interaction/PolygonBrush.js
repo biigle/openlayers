@@ -1,9 +1,10 @@
 /**
  * @module ol/interaction/PolygonBrush
  */
-import {polygon as turfPolygon} from '@turf/helpers'
+import {polygon as turfPolygon} from '@turf/helpers';
 import GeometryType from '../geom/GeometryType.js';
-import booleanOverlap from '@turf/boolean-overlap'
+import booleanOverlap from '@turf/boolean-overlap';
+import booleanContains from '@turf/boolean-contains';
 import Draw from './Draw.js';
 import {DrawEvent} from './Draw.js';
 import {DrawEventType} from './Draw.js';
@@ -16,7 +17,7 @@ import {fromCircle} from '../geom/Polygon.js';
 import {union} from '../geom/flat/union.js';
 import {createEditingStyle} from '../style/Style.js';
 import VectorLayer from '../layer/Vector.js';
-import {always} from '../events/condition.js';
+import {always, penOnly} from '../events/condition.js';
 
 const MIN_BRUSH_SIZE = 5;
 const BRUSH_RESIZE_STEP = 5;
@@ -50,6 +51,18 @@ export function getNewSketchPointRadius(event, radius) {
   return radius;
 }
 
+export function getNewSketchPointRadiusByPressure(event, radius) {
+  if (event.pointerEvent.pressure != 0) {
+    radius = getNewSketchPointRadius(event, radius);
+    radius = Math.max(
+                           radius * event.pointerEvent.pressure,
+                           MIN_BRUSH_SIZE
+                         ) * event.map.getView().getResolution();
+  }
+
+  return radius;
+}
+
 /**
  * @classdesc
  * Interaction for drawing polygons with a brush.
@@ -60,6 +73,10 @@ export function getNewSketchPointRadius(event, radius) {
 class PolygonBrush extends Draw {
 
   constructor(options) {
+
+    options.freehandCondition = options.freehandCondition ?
+      options.freehandCondition : penOnly;
+
     super(options);
 
     // Override the default overlay to set updateWhileAnimating.
@@ -78,6 +95,7 @@ class PolygonBrush extends Draw {
       options.resizeCondition : shiftKeyOnly;
 
     this.isDrawing_ = false;
+    this.sketchCircle_ = null;
   }
 
   setMap(map) {
@@ -165,12 +183,30 @@ class PolygonBrush extends Draw {
     }
   }
 
+  createOrUpdateSketchCircle_(event) {
+    const coordinates = event.coordinate.slice();
+    if (!this.sketchCircle_) {
+      this.sketchCircle_ = new Circle(coordinates,
+                                      this.sketchPoint_.getGeometry().getRadius());
+    }
+    else {
+      this.sketchCircle_.setCenter(coordinates);
+      this.sketchCircle_.setRadius(this.sketchPoint_.getGeometry().getRadius())
+    }
+    if (event.originalEvent.pointerType === 'pen') {
+      this.sketchCircle_.setRadius(
+        getNewSketchPointRadiusByPressure(event, this.sketchPointRadius_)
+      );
+    }
+  }
+
   startDrawing_(event) {
     this.isDrawing_ = true;
     this.createOrUpdateSketchPoint_(event);
     const start = event.coordinate;
     this.finishCoordinate_ = start;
-    this.sketchFeature_ = new Feature(fromCircle(this.sketchPoint_.getGeometry()));
+    this.createOrUpdateSketchCircle_(event);
+    this.sketchFeature_ = new Feature(fromCircle(this.sketchCircle_));
     this.updateSketchFeatures_();
     this.dispatchEvent(new DrawEvent(DrawEventType.DRAWSTART, this.sketchFeature_));
   }
@@ -179,13 +215,15 @@ class PolygonBrush extends Draw {
     this.createOrUpdateSketchPoint_(event);
 
     if (this.isDrawing_ && this.sketchFeature_) {
-      const sketchPointGeometry = fromCircle(this.sketchPoint_.getGeometry());
-      const sketchPointPolygon = turfPolygon(sketchPointGeometry.getCoordinates());
+      this.createOrUpdateSketchCircle_(event);
+      const sketchCircleGeometry = fromCircle(this.sketchCircle_);
+      const sketchCirclePolygon = turfPolygon(sketchCircleGeometry.getCoordinates());
       const sketchFeatureGeometry = this.sketchFeature_.getGeometry();
       const sketchFeaturePolygon = turfPolygon(sketchFeatureGeometry.getCoordinates());
-      if (booleanOverlap(sketchPointPolygon, sketchFeaturePolygon)) {
+      if (booleanOverlap(sketchCirclePolygon, sketchFeaturePolygon)
+           || booleanContains(sketchCirclePolygon, sketchFeaturePolygon)) {
           sketchFeatureGeometry.setCoordinates(
-            union(sketchPointPolygon, sketchFeaturePolygon)
+            union(sketchCirclePolygon, sketchFeaturePolygon)
           );
       }
     }
@@ -209,6 +247,13 @@ class PolygonBrush extends Draw {
 
   getBrushRadius() {
     return this.sketchPointRadius_;
+  }
+
+  abortDrawing_() {
+    var sketchFeature = super.abortDrawing_();
+    this.sketchCircle_ = null;
+
+    return sketchFeature;
   }
 }
 

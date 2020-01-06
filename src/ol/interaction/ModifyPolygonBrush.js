@@ -1,25 +1,25 @@
 /**
  * @module ol/interaction/ModifyPolygonBrush
  */
-import {polygon as turfPolygon} from '@turf/helpers'
-import booleanContains from '@turf/boolean-contains'
-import booleanOverlap from '@turf/boolean-overlap'
+import {polygon as turfPolygon} from '@turf/helpers';
+import booleanContains from '@turf/boolean-contains';
+import booleanOverlap from '@turf/boolean-overlap';
 import Feature from '../Feature.js';
 import EventType from '../events/EventType.js';
 import GeometryType from '../geom/GeometryType.js';
 import Circle from '../geom/Circle.js';
 import Polygon from '../geom/Polygon.js';
 import {createEditingStyle} from '../style/Style.js';
-import Modify from './Modify.js'
-import {ModifyEvent} from './Modify.js'
-import {ModifyEventType} from './Modify.js'
+import Modify from './Modify.js';
+import {ModifyEvent} from './Modify.js';
+import {ModifyEventType} from './Modify.js';
 import {shiftKeyOnly} from '../events/condition.js';
-import {fromCircle} from '../geom/Polygon.js'
+import {fromCircle} from '../geom/Polygon.js';
 import {union} from '../geom/flat/union.js';
 import {difference} from '../geom/flat/difference.js';
-import {always} from '../events/condition.js';
+import {always, penOnly} from '../events/condition.js';
 import Collection from '../Collection.js';
-import {getNewSketchPointRadius} from './PolygonBrush.js';
+import {getNewSketchPointRadius, getNewSketchPointRadiusByPressure} from './PolygonBrush.js';
 
 export const ModifyPolygonBrushEventType = {
   MODIFYREMOVE: 'modifyremove',
@@ -34,6 +34,9 @@ export const ModifyPolygonBrushEventType = {
  */
 class ModifyPolygonBrush extends Modify {
   constructor(options) {
+
+    options.freehandCondition = options.freehandCondition ?
+      options.freehandCondition : penOnly;
 
     super(options);
 
@@ -53,6 +56,8 @@ class ModifyPolygonBrush extends Modify {
 
     this.isAdding_ = false;
     this.isSubtracting_ = false;
+
+    this.sketchCircle_ = null;
 
   }
 
@@ -83,6 +88,23 @@ class ModifyPolygonBrush extends Modify {
     } else {
       const sketchPointGeom = this.sketchPoint_.getGeometry();
       sketchPointGeom.setCenter(coordinates);
+    }
+  }
+
+  createOrUpdateSketchCircle_(event) {
+    const coordinates = event.coordinate.slice();
+    if (!this.sketchCircle_) {
+      this.sketchCircle_ = new Circle(coordinates, 
+                                        this.sketchPoint_.getGeometry().getRadius());
+    }
+    else {
+      this.sketchCircle_.setCenter(coordinates);
+      this.sketchCircle_.setRadius(this.sketchPoint_.getGeometry().getRadius())
+    }
+    if (event.originalEvent.pointerType === 'pen') {
+      this.sketchCircle_.setRadius(
+        getNewSketchPointRadiusByPressure(event, this.sketchPointRadius_)
+      );
     }
   }
 
@@ -169,7 +191,8 @@ class ModifyPolygonBrush extends Modify {
   }
 
   subtractCurrentFeatures_(event) {
-    const sketchPointGeom = fromCircle(this.sketchPoint_.getGeometry());
+    this.createOrUpdateSketchCircle_(event);
+    const sketchPointGeom = fromCircle(this.sketchCircle_);
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
     let sketchPointArea = sketchPointGeom.getArea();
     this.features_.getArray().forEach(function (feature) {
@@ -203,7 +226,8 @@ class ModifyPolygonBrush extends Modify {
   }
 
   addCurrentFeatures_(event) {
-    const sketchPointGeom = fromCircle(this.sketchPoint_.getGeometry());
+    this.createOrUpdateSketchCircle_(event);
+    const sketchPointGeom = fromCircle(this.sketchCircle_);
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
     this.features_.getArray().forEach(function (feature) {
       let featureGeom = feature.getGeometry();
