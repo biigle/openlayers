@@ -54,10 +54,9 @@ export function getNewSketchPointRadius(event, radius) {
 export function getNewSketchPointRadiusByPressure(event, radius) {
   if (event.pointerEvent.pressure != 0) {
     radius = getNewSketchPointRadius(event, radius);
-    radius = Math.max(
-                           radius * event.pointerEvent.pressure,
-                           MIN_BRUSH_SIZE
-                         ) * event.map.getView().getResolution();
+
+    return Math.max(radius * event.pointerEvent.pressure, MIN_BRUSH_SIZE) *
+      event.map.getView().getResolution();
   }
 
   return radius;
@@ -186,13 +185,12 @@ class PolygonBrush extends Draw {
   createOrUpdateSketchCircle_(event) {
     const coordinates = event.coordinate.slice();
     if (!this.sketchCircle_) {
-      this.sketchCircle_ = new Circle(coordinates,
-                                      this.sketchPoint_.getGeometry().getRadius());
-    }
-    else {
+      this.sketchCircle_ = new Circle(coordinates, this.sketchPoint_.getGeometry().getRadius());
+    } else {
       this.sketchCircle_.setCenter(coordinates);
       this.sketchCircle_.setRadius(this.sketchPoint_.getGeometry().getRadius())
     }
+
     if (event.originalEvent.pointerType === 'pen') {
       this.sketchCircle_.setRadius(
         getNewSketchPointRadiusByPressure(event, this.sketchPointRadius_)
@@ -203,9 +201,9 @@ class PolygonBrush extends Draw {
   startDrawing_(event) {
     this.isDrawing_ = true;
     this.createOrUpdateSketchPoint_(event);
+    this.createOrUpdateSketchCircle_(event);
     const start = event.coordinate;
     this.finishCoordinate_ = start;
-    this.createOrUpdateSketchCircle_(event);
     this.sketchFeature_ = new Feature(fromCircle(this.sketchCircle_));
     this.updateSketchFeatures_();
     this.dispatchEvent(new DrawEvent(DrawEventType.DRAWSTART, this.sketchFeature_));
@@ -213,9 +211,9 @@ class PolygonBrush extends Draw {
 
   handlePointerMove_(event) {
     this.createOrUpdateSketchPoint_(event);
+    this.createOrUpdateSketchCircle_(event);
 
     if (this.isDrawing_ && this.sketchFeature_) {
-      this.createOrUpdateSketchCircle_(event);
       const sketchCircleGeometry = fromCircle(this.sketchCircle_);
       const sketchCirclePolygon = turfPolygon(sketchCircleGeometry.getCoordinates());
       const sketchFeatureGeometry = this.sketchFeature_.getGeometry();
@@ -250,10 +248,9 @@ class PolygonBrush extends Draw {
   }
 
   abortDrawing_() {
-    var sketchFeature = super.abortDrawing_();
     this.sketchCircle_ = null;
 
-    return sketchFeature;
+    return super.abortDrawing_();
   }
 }
 

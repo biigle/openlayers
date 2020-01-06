@@ -94,13 +94,12 @@ class ModifyPolygonBrush extends Modify {
   createOrUpdateSketchCircle_(event) {
     const coordinates = event.coordinate.slice();
     if (!this.sketchCircle_) {
-      this.sketchCircle_ = new Circle(coordinates, 
-                                        this.sketchPoint_.getGeometry().getRadius());
-    }
-    else {
+      this.sketchCircle_ = new Circle(coordinates, this.sketchPoint_.getGeometry().getRadius());
+    } else {
       this.sketchCircle_.setCenter(coordinates);
       this.sketchCircle_.setRadius(this.sketchPoint_.getGeometry().getRadius())
     }
+
     if (event.originalEvent.pointerType === 'pen') {
       this.sketchCircle_.setRadius(
         getNewSketchPointRadiusByPressure(event, this.sketchPointRadius_)
@@ -139,11 +138,13 @@ class ModifyPolygonBrush extends Modify {
 
   handlePointerMove_(event) {
     this.createOrUpdateSketchPoint_(event);
+    this.createOrUpdateSketchCircle_(event);
   }
 
   handleDownEvent(event) {
     if (!this.handlingDownUpSequence) {
       this.createOrUpdateSketchPoint_(event);
+      this.createOrUpdateSketchCircle_(event);
 
       if (this.subtractCondition_(event)) {
         this.startSubtracting_(event);
@@ -183,6 +184,7 @@ class ModifyPolygonBrush extends Modify {
 
   handleDragEvent(event) {
     this.createOrUpdateSketchPoint_(event);
+    this.createOrUpdateSketchCircle_(event);
     if (this.isSubtracting_) {
       this.subtractCurrentFeatures_(event);
     } else if (this.isAdding_) {
@@ -191,7 +193,6 @@ class ModifyPolygonBrush extends Modify {
   }
 
   subtractCurrentFeatures_(event) {
-    this.createOrUpdateSketchCircle_(event);
     const sketchPointGeom = fromCircle(this.sketchCircle_);
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
     let sketchPointArea = sketchPointGeom.getArea();
@@ -226,7 +227,6 @@ class ModifyPolygonBrush extends Modify {
   }
 
   addCurrentFeatures_(event) {
-    this.createOrUpdateSketchCircle_(event);
     const sketchPointGeom = fromCircle(this.sketchCircle_);
     let sketchPointPolygon = turfPolygon(sketchPointGeom.getCoordinates());
     this.features_.getArray().forEach(function (feature) {
