@@ -136,6 +136,7 @@ class PolygonBrush extends Draw {
     let pass = true;
     if (this.resizeCondition_(event) &&
       (type === EventType.WHEEL || EventType.MOUSEWHEEL)) {
+      event.originalEvent.preventDefault();
       this.updateAbsoluteSketchPointRadius_(event);
       pass = false;
     }
