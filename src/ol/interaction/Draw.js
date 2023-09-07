@@ -333,7 +333,7 @@ class Draw extends PointerInteraction {
            * +-------+------<3>-- (the third point may be anywhere on this line)
            */
 
-          if (coordinates.length > 2) {
+           if (coordinates.length > 2) {
             var first = coordinates[0];
             var second = coordinates[1];
             var third = coordinates[2];
@@ -341,19 +341,17 @@ class Draw extends PointerInteraction {
             // vector from first to second
             var a_vec = [second[0] - first[0], second[1] - first[1]];
 
-            if (a_vec[1] === 0) {
+            if (a_vec[0] === 0 && a_vec[1] === 0) {
                 // catch the case where the first and second point are equal
-                coordinates = [[first, first, first, first]];
+                coordinates = [[first]];
             } else {
               // perpendicular vector to a_vec
               var b_vec = [-1 * a_vec[1], a_vec[0]];
 
-              // helper
-              var tmp = a_vec[0] / a_vec[1];
               // compute the intersection parameter of the two lines
               // going from second in b_vec direction
               // and from third in a_vec direction
-              var x = (third[0] + tmp * (second[1] - third[1]) - second[0]) / (b_vec[0] - b_vec[1] * tmp);
+              var x = (third[0] * second[1] - third[1] * second[0]) / (third[0] * b_vec[1] - third[1] * b_vec[0]);
 
               // vector from second to the intersection point
               var intersection_vec = [x * b_vec[0], x * b_vec[1]];
