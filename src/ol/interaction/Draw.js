@@ -418,12 +418,10 @@ class Draw extends PointerInteraction {
               // perpendicular vector to a_vec
               var b_vec = [-1 * a_vec[1], a_vec[0]];
 
-              // helper
-              var tmp = a_vec[0] / a_vec[1];
               // compute the intersection parameter of the two lines
               // going from second in b_vec direction
               // and from third in a_vec direction
-              var x = (third[0] + tmp * (second[1] - third[1]) - second[0]) / (b_vec[0] - b_vec[1] * tmp);
+              var x = (third[0] * second[1] - third[1] * second[0]) / (third[0] * b_vec[1] - third[1] * b_vec[0]);
 
               // vector from second to the intersection point
               var intersection_vec = [x * b_vec[0], x * b_vec[1]];
