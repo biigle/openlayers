@@ -411,9 +411,9 @@ class Draw extends PointerInteraction {
             // Center point.
             var center = [first[0] + a_vec[0] * 0.5, first[1] + a_vec[1] * 0.5];
 
-            if (a_vec[1] === 0) {
+            if (a_vec[0] === 0 && a_vec[1] === 0) {
                 // catch the case where the first and second point are equal
-                coordinates = [[first, first, first, first]];
+                coordinates = [[first]];
             } else {
               // perpendicular vector to a_vec
               var b_vec = [-1 * a_vec[1], a_vec[0]];
