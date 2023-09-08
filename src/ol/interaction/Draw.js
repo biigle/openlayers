@@ -336,7 +336,7 @@ class Draw extends PointerInteraction {
           if (coordinates.length > 2) {
             var first = coordinates[0];
             var second = coordinates[1];
-            var third = coordinates[2];
+            var third = coordinates[2].every((element) => element === 0) ? [1e-7,1e-7] : coordinates[2];
 
             // vector from first to second
             var a_vec = [second[0] - first[0], second[1] - first[1]];
@@ -404,7 +404,7 @@ class Draw extends PointerInteraction {
           if (coordinates.length > 2) {
             var first = coordinates[0];
             var second = coordinates[1];
-            var third = coordinates[2];
+            var third = coordinates[2].every((element) => element === 0) ? [1e-7,1e-7] : coordinates[2];
 
             // vector from first to second
             var a_vec = [second[0] - first[0], second[1] - first[1]];
