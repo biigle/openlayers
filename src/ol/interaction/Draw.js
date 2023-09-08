@@ -333,7 +333,7 @@ class Draw extends PointerInteraction {
            * +-------+------<3>-- (the third point may be anywhere on this line)
            */
 
-           if (coordinates.length > 2) {
+          if (coordinates.length > 2) {
             var first = coordinates[0];
             var second = coordinates[1];
             var third = coordinates[2];
