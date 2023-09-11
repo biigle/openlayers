@@ -915,6 +915,9 @@ class Draw extends PointerInteraction {
    * @private
    */
   addToDrawing_(event) {
+    if(new Set(this.sketchCoords_.map(JSON.stringify)).size < this.sketchCoords_.length){
+      return;
+    }
     const coordinate = event.coordinate;
     const geometry = /** @type {import("../geom/SimpleGeometry.js").default} */ (this.sketchFeature_.getGeometry());
     let done;
