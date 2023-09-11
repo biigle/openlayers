@@ -336,6 +336,7 @@ class Draw extends PointerInteraction {
           if (coordinates.length > 2) {
             var first = coordinates[0];
             var second = coordinates[1];
+            // Replace [0,0] by coordinate with small numbers to prevent division by zero error
             var third = coordinates[2].every((element) => element === 0) ? [1e-7,1e-7] : coordinates[2];
 
             // vector from first to second
@@ -915,6 +916,7 @@ class Draw extends PointerInteraction {
    * @private
    */
   addToDrawing_(event) {
+    // Check sketch coordinates for duplicates and discard them if present
     if(new Set(this.sketchCoords_.map(JSON.stringify)).size < this.sketchCoords_.length){
       return;
     }
