@@ -336,8 +336,8 @@ class Draw extends PointerInteraction {
           if (coordinates.length > 2) {
             var first = coordinates[0];
             var second = coordinates[1];
-            // Replace [0,0] by coordinate with small numbers to prevent division by zero error
-            var third = coordinates[2].every((element) => element === 0) ? [1e-7,1e-7] : coordinates[2];
+            // Replace [0, 0] by coordinate with small numbers to prevent division by zero error for computation of x below.
+            var third = coordinates[2].every((element) => element === 0) ? [1e-7, 1e-7] : coordinates[2];
 
             // vector from first to second
             var a_vec = [second[0] - first[0], second[1] - first[1]];
@@ -405,7 +405,8 @@ class Draw extends PointerInteraction {
           if (coordinates.length > 2) {
             var first = coordinates[0];
             var second = coordinates[1];
-            var third = coordinates[2].every((element) => element === 0) ? [1e-7,1e-7] : coordinates[2];
+            // Replace [0, 0] by coordinate with small numbers to prevent division by zero error for computation of x below.
+            var third = coordinates[2].every((element) => element === 0) ? [1e-7, 1e-7] : coordinates[2];
 
             // vector from first to second
             var a_vec = [second[0] - first[0], second[1] - first[1]];
@@ -916,7 +917,8 @@ class Draw extends PointerInteraction {
    * @private
    */
   addToDrawing_(event) {
-    // Check sketch coordinates for duplicates and discard them if present
+    // Ignore event in case of duplicate coordinates (e.g. clicking on the same point twice).
+    // This was added to prevent incorrect states for the Rectangle and Ellipse shapes.
     if(new Set(this.sketchCoords_.map(JSON.stringify)).size < this.sketchCoords_.length){
       return;
     }
