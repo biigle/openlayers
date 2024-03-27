@@ -146,7 +146,13 @@ export const DrawEventType = {
    * @event DrawEvent#drawend
    * @api
    */
-  DRAWEND: 'drawend'
+  DRAWEND: 'drawend',
+    /**
+   * Triggered upon feature draw abort
+   * @event DrawEvent#drawabort
+   * @api
+   */
+    DRAWABORT: 'drawabort'
 };
 
 
@@ -1051,6 +1057,7 @@ class Draw extends PointerInteraction {
       this.sketchPoint_ = null;
       this.sketchLine_ = null;
       /** @type {VectorSource} */ (this.overlay_.getSource()).clear(true);
+      this.dispatchEvent(new DrawEvent(DrawEventType.DRAWABORT, sketchFeature));
     }
     return sketchFeature;
   }
