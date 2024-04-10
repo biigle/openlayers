@@ -147,12 +147,13 @@ export const DrawEventType = {
    * @api
    */
   DRAWEND: 'drawend',
-    /**
+  
+  /**
    * Triggered upon feature draw abort
    * @event DrawEvent#drawabort
    * @api
    */
-    DRAWABORT: 'drawabort'
+  DRAWABORT: 'drawabort'
 };
 
 
