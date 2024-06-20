@@ -4,5 +4,5 @@ set -e
 
 npm run build-package
 cd build/ol
-npm publish --tag dev
+npm publish
 cd ../..
