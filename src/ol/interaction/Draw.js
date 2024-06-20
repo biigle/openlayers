@@ -356,10 +356,23 @@ class Draw extends PointerInteraction {
               // perpendicular vector to a_vec
               var b_vec = [-1 * a_vec[1], a_vec[0]];
 
+              // OLD NAIVE FORMULA THAT SUFFERED FROM DIVISION BY ZERO ISSUES WITH
+              // a_vec[0] == 0 or a_vec[1] == 0 (axis aligned):
+              /*
+              // helper
+              var tmp = a_vec[0] / a_vec[1];
               // compute the intersection parameter of the two lines
               // going from second in b_vec direction
               // and from third in a_vec direction
-              var x = (third[0] * second[1] - third[1] * second[0]) / (third[0] * b_vec[1] - third[1] * b_vec[0]);
+              var x = (third[0] + tmp * (second[1] - third[1]) - second[0]) / (b_vec[0] - b_vec[1] * tmp);
+              */
+
+              // NEW SIMPLIFIED FORMULA THAT CAN HANDLE a_vec[0] == 0 or a_vec[1] == 0
+              //
+              // compute the intersection parameter of the two lines
+              // going from second in b_vec direction
+              // and from third in a_vec direction
+              var x = (a_vec[0] * (second[1] - third[1]) + a_vec[1] * (third[0] - second[0])) / (a_vec[1] * b_vec[0] - a_vec[0] * b_vec[1]);
 
               // vector from second to the intersection point
               var intersection_vec = [x * b_vec[0], x * b_vec[1]];
@@ -430,7 +443,8 @@ class Draw extends PointerInteraction {
               // compute the intersection parameter of the two lines
               // going from second in b_vec direction
               // and from third in a_vec direction
-              var x = (third[0] * second[1] - third[1] * second[0]) / (third[0] * b_vec[1] - third[1] * b_vec[0]);
+              // see rectangle geometry function for an explanation
+              var x = (a_vec[0] * (second[1] - third[1]) + a_vec[1] * (third[0] - second[0])) / (a_vec[1] * b_vec[0] - a_vec[0] * b_vec[1]);
 
               // vector from second to the intersection point
               var intersection_vec = [x * b_vec[0], x * b_vec[1]];
