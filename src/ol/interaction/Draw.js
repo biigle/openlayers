@@ -2,6 +2,7 @@
  * @module ol/interaction/Draw
  */
 import Circle from '../geom/Circle.js';
+import Ellipse from '../geom/Ellipse.js';
 import Event from '../events/Event.js';
 import EventType from '../events/EventType.js';
 import Feature from '../Feature.js';
@@ -16,6 +17,7 @@ import MultiPolygon from '../geom/MultiPolygon.js';
 import Point from '../geom/Point.js';
 import PointerInteraction from './Pointer.js';
 import Polygon, {fromCircle, makeRegular} from '../geom/Polygon.js';
+import Rectangle from '../geom/Rectangle.js';
 import VectorLayer from '../layer/Vector.js';
 import VectorSource from '../source/Vector.js';
 import {FALSE, TRUE} from '../functions.js';
@@ -158,7 +160,7 @@ import {getStrideForLayout} from '../geom/SimpleGeometry.js';
  */
 
 /**
- * @typedef {'Point' | 'LineString' | 'Polygon' | 'Circle'} Mode
+ * @typedef {'Point' | 'LineString' | 'Polygon' | 'Circle' | 'Ellipse'} Mode
  * Draw mode.  This collapses multi-part geometry types with their single-part
  * cousins.
  */
@@ -774,6 +776,157 @@ class Draw extends PointerInteraction {
             circle.transform(projection, userProjection);
           }
           return circle;
+        };
+      } else if (mode === 'Rectangle') {
+        this.minPoints_ = 3;
+        this.maxPoints_ = 3;
+        /**
+         * @param {!LineCoordType} coordinates The coordinates.
+         * @param {import("../geom/SimpleGeometry.js").default|undefined} geometry Optional geometry.
+         * @param {import("../proj/Projection.js").default} projection The view projection.
+         * @return {import("../geom/SimpleGeometry.js").default} A geometry.
+         */
+        geometryFunction = function(coordinates, geometry, projection) {
+
+          /*
+           *   a_vec
+           * -------->
+           * +-------+
+           * |       |
+           * |       |
+           * 1       2
+           * |       |   | intersection_vec
+           * |       |   v
+           * +-------+------<3>-- (the third point may be anywhere on this line)
+           */
+
+          if (coordinates.length > 2) {
+            const first = coordinates[0];
+            const second = coordinates[1];
+            // Replace [0, 0] by coordinate with small numbers to prevent division by zero error for computation of x below.
+            const third = coordinates[2].every((element) => element === 0) ? [1e-7, 1e-7] : coordinates[2];
+
+            // vector from first to second
+            const a_vec = [second[0] - first[0], second[1] - first[1]];
+
+            if (a_vec[0] === 0 && a_vec[1] === 0) {
+                // catch the case where the first and second point are equal
+                coordinates = [[first]];
+            } else {
+              // perpendicular vector to a_vec
+              const b_vec = [-1 * a_vec[1], a_vec[0]];
+
+              // OLD NAIVE FORMULA THAT SUFFERED FROM DIVISION BY ZERO ISSUES WITH
+              // a_vec[0] == 0 or a_vec[1] == 0 (axis aligned):
+              /*
+              // helper
+              const tmp = a_vec[0] / a_vec[1];
+              // compute the intersection parameter of the two lines
+              // going from second in b_vec direction
+              // and from third in a_vec direction
+              const x = (third[0] + tmp * (second[1] - third[1]) - second[0]) / (b_vec[0] - b_vec[1] * tmp);
+              */
+
+              // NEW SIMPLIFIED FORMULA THAT CAN HANDLE a_vec[0] == 0 or a_vec[1] == 0
+              //
+              // compute the intersection parameter of the two lines
+              // going from second in b_vec direction
+              // and from third in a_vec direction
+              const x = (a_vec[0] * (second[1] - third[1]) + a_vec[1] * (third[0] - second[0])) / (a_vec[1] * b_vec[0] - a_vec[0] * b_vec[1]);
+
+              // vector from second to the intersection point
+              const intersection_vec = [x * b_vec[0], x * b_vec[1]];
+
+              coordinates = [[
+                [first[0] - intersection_vec[0], first[1] - intersection_vec[1]],
+                [second[0] - intersection_vec[0], second[1] - intersection_vec[1]],
+                [second[0] + intersection_vec[0], second[1] + intersection_vec[1]],
+                [first[0] + intersection_vec[0], first[1] + intersection_vec[1]]
+              ]];
+            }
+          } else {
+            coordinates = [coordinates];
+          }
+
+          if (geometry) {
+            geometry.setCoordinates(coordinates);
+          } else {
+            geometry = new Rectangle(coordinates);
+          }
+
+          return geometry;
+        };
+      } else if (this.type_ === 'Ellipse') {
+        this.minPoints_ = 3;
+        this.maxPoints_ = 3;
+        /**
+         * @param {!LineCoordType} coordinates The coordinates.
+         * @param {import("../geom/SimpleGeometry.js").default|undefined} geometry Optional geometry.
+         * @param {import("../proj/Projection.js").default} projection The view projection.
+         * @return {import("../geom/SimpleGeometry.js").default} A geometry.
+         */
+        geometryFunction = function(coordinates, geometry, projection) {
+
+          /*
+           * An ellipse is represented as a polygon in diamond shape.
+           *       +
+           *     /   \
+           *    /     \
+           *   /       \
+           *  /  a_vec  \
+           * 1-----•---->2
+           *  \         /|
+           *   \       / | intersection_vec
+           *    \     /  |
+           *     \   /   v
+           * ------+-------<3>--- (the third point may be anywhere on this line)
+           */
+
+          if (coordinates.length > 2) {
+            const first = coordinates[0];
+            const second = coordinates[1];
+            // Replace [0, 0] by coordinate with small numbers to prevent division by zero error for computation of x below.
+            const third = coordinates[2].every((element) => element === 0) ? [1e-7, 1e-7] : coordinates[2];
+
+            // vector from first to second
+            const a_vec = [second[0] - first[0], second[1] - first[1]];
+            // Center point.
+            const center = [first[0] + a_vec[0] * 0.5, first[1] + a_vec[1] * 0.5];
+
+            if (a_vec[0] === 0 && a_vec[1] === 0) {
+                // catch the case where the first and second point are equal
+                coordinates = [[first]];
+            } else {
+              // perpendicular vector to a_vec
+              const b_vec = [-1 * a_vec[1], a_vec[0]];
+
+              // compute the intersection parameter of the two lines
+              // going from second in b_vec direction
+              // and from third in a_vec direction
+              // see rectangle geometry function for an explanation
+              const x = (a_vec[0] * (second[1] - third[1]) + a_vec[1] * (third[0] - second[0])) / (a_vec[1] * b_vec[0] - a_vec[0] * b_vec[1]);
+
+              // vector from second to the intersection point
+              const intersection_vec = [x * b_vec[0], x * b_vec[1]];
+
+              coordinates = [[
+                [first[0], first[1]],
+                [center[0] - intersection_vec[0], center[1] - intersection_vec[1]],
+                [second[0], second[1]],
+                [center[0] + intersection_vec[0], center[1] + intersection_vec[1]]
+              ]];
+            }
+          } else {
+            coordinates = [coordinates];
+          }
+
+          if (geometry) {
+            geometry.setCoordinates(coordinates);
+          } else {
+            geometry = new Ellipse(coordinates);
+          }
+
+          return geometry;
         };
       } else {
         let Constructor;
@@ -1550,7 +1703,22 @@ class Draw extends PointerInteraction {
       const sketchPointGeom = this.sketchPoint_.getGeometry();
       sketchPointGeom.setCoordinates(coordinate);
     }
-    if (geometry.getType() === 'Polygon' && this.mode_ !== 'Polygon') {
+    if (this.mode_ === 'Ellipse') {
+      if (!this.sketchLine_) {
+        this.sketchLine_ = new Feature(new LineString([0, 0]));
+      }
+      const sketchLineGeom = this.sketchLine_.getGeometry();
+      if (this.sketchCoords_.length < 3) {
+        sketchLineGeom.setCoordinates(this.sketchCoords_);
+      } else {
+        coordinates = geometry.getCoordinates()[0];
+        const center = [
+          (coordinates[0][0] + coordinates[2][0]) / 2,
+          (coordinates[0][1] + coordinates[2][1]) / 2
+        ];
+        sketchLineGeom.setCoordinates([coordinates[0], center, coordinates[3]]);
+      }
+    } else if (geometry.getType() === 'Polygon' && this.mode_ !== 'Polygon') {
       this.createOrUpdateCustomSketchLine_(/** @type {Polygon} */ (geometry));
     } else if (this.sketchLineCoords_) {
       const sketchLineGeom = this.sketchLine_.getGeometry();
@@ -1566,12 +1734,21 @@ class Draw extends PointerInteraction {
    * @private
    */
   addToDrawing_(coordinate) {
+    const mode = this.mode_;
+
+    // Ignore event in case of duplicate coordinates (e.g. clicking on the same point twice).
+    // This was added to prevent incorrect states for the Rectangle and Ellipse shapes.
+    if ((mode === 'Rectangle' || mode === 'Ellipse')) {
+      if (new Set(this.sketchCoords_.map(JSON.stringify)).size < this.sketchCoords_.length) {
+        return;
+      }
+    }
+
     const geometry = this.sketchFeature_.getGeometry();
     const projection = this.getMap().getView().getProjection();
     let done;
     let coordinates;
-    const mode = this.mode_;
-    if (mode === 'LineString' || mode === 'Circle') {
+    if (mode === 'LineString' || mode === 'Circle' || mode === 'Ellipse') {
       this.finishCoordinate_ = coordinate.slice();
       coordinates = /** @type {LineCoordType} */ (this.sketchCoords_);
       if (coordinates.length >= this.maxPoints_) {
@@ -1960,12 +2137,16 @@ function getMode(type) {
       return 'Point';
     case 'LineString':
     case 'MultiLineString':
+    // Use LineString mode for rectangle so the geometry always has an end point.
+    case 'Rectangle':
       return 'LineString';
     case 'Polygon':
     case 'MultiPolygon':
       return 'Polygon';
     case 'Circle':
       return 'Circle';
+    case 'Ellipse':
+      return 'Ellipse';
     default:
       throw new Error('Invalid type: ' + type);
   }

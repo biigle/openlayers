@@ -18,6 +18,7 @@ const BATCH_CONSTRUCTORS = {
   'LineString': LineStringBuilder,
   'Polygon': PolygonBuilder,
   'Text': TextBuilder,
+  'Ellipse': PolygonBuilder,
 };
 
 class BuilderGroup {

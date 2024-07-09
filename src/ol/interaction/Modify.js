@@ -346,6 +346,8 @@ class Modify extends PointerInteraction {
       'MultiPoint': this.writeMultiPointGeometry_.bind(this),
       'MultiLineString': this.writeMultiLineStringGeometry_.bind(this),
       'MultiPolygon': this.writeMultiPolygonGeometry_.bind(this),
+      'Rectangle': this.writePolygonGeometry_.bind(this),
+      'Ellipse': this.writePolygonGeometry_.bind(this),
       'Circle': this.writeCircleGeometry_.bind(this),
       'GeometryCollection': this.writeGeometryCollectionGeometry_.bind(this),
     };
@@ -935,6 +937,14 @@ class Modify extends PointerInteraction {
           coordinates[depth[1]][depth[0]][segmentData.index + index] = vertex;
           segment[index] = vertex;
           break;
+        case 'Rectangle':
+          coordinates = geometry.getCoordinates();
+          updateRectangleGeometry(coordinates, segmentData, depth, index, vertex);
+          break;
+        case 'Ellipse':
+          coordinates = geometry.getCoordinates();
+          updateEllipseGeometry(coordinates, segmentData, depth, index, vertex);
+          break;
         case 'Circle':
           segment[0] = vertex;
           segment[1] = vertex;
@@ -1102,9 +1112,21 @@ class Modify extends PointerInteraction {
    */
   handleUpEvent(evt) {
     for (let i = this.dragSegments_.length - 1; i >= 0; --i) {
+      if (!this.dragSegments_[i]) {
+        // This can happen because modified rectangles or ellipses are removed and
+        // added completely, so their dragSegments no longer exist.
+        continue;
+      }
+
       const segmentData = this.dragSegments_[i][0];
       const geometry = segmentData.geometry;
-      if (geometry.getType() === 'Circle') {
+      const type = geometry.getType();
+      if (type === 'Rectangle' || type === 'Ellipse') {
+        // On modify, ALL segments of ellipses and rectangles change.
+        // The easiest way ist to remove and add the entire feature.
+        this.features_.remove(segmentData.feature);
+        this.features_.push(segmentData.feature);
+      } else if (type === 'Circle') {
         // Update a circle object in the R* bush:
         const coordinates = geometry.getCenter();
         const centerSegmentData = segmentData.featureSegments[0];
@@ -1618,9 +1640,9 @@ function projectedDistanceToSegmentDataSquared(
  */
 function closestOnSegmentData(pointCoordinates, segmentData, projection) {
   const geometry = segmentData.geometry;
-
+  const type = geometry.getType();
   if (
-    geometry.getType() === 'Circle' &&
+    type === 'Circle' &&
     segmentData.index === CIRCLE_CIRCUMFERENCE_INDEX
   ) {
     let circleGeometry = /** @type {import("../geom/Circle.js").default} */ (
@@ -1634,6 +1656,19 @@ function closestOnSegmentData(pointCoordinates, segmentData, projection) {
     }
     return toUserCoordinate(
       circleGeometry.getClosestPoint(
+        fromUserCoordinate(pointCoordinates, projection),
+      ),
+      projection,
+    );
+  } else if (type === 'Ellipse' || type === 'Rectangle') {
+    const userProjection = getUserProjection();
+    if (userProjection) {
+      geometry = geometry
+        .clone()
+        .transform(userProjection, projection);
+    }
+    return toUserCoordinate(
+      geometry.getClosestPoint(
         fromUserCoordinate(pointCoordinates, projection),
       ),
       projection,
@@ -1656,6 +1691,84 @@ function getDefaultStyleFunction() {
   return function (feature, resolution) {
     return style['Point'];
   };
+}
+
+function updateRectangleGeometry(coordinates, segmentData, depth, index, vertex) {
+  const coords = coordinates[depth[0]];
+  // vertex across from the dragged vertex
+  const across = coords[(segmentData.index + index + 2) % 4];
+  // vector from across to vertex
+  const acrossToVertex = [vertex[0] - across[0], vertex[1] - across[1]];
+
+  // vertex left from dragged vertex
+  const left = coords[(segmentData.index + index + 1) % 4];
+  // vector from across to left
+  const acrossToLeft = [left[0] - across[0], left[1] - across[1]];
+  // normalize vector
+  let length = Math.sqrt(acrossToLeft[0] * acrossToLeft[0] + acrossToLeft[1] * acrossToLeft[1]);
+  acrossToLeft[0] = acrossToLeft[0] / length;
+  acrossToLeft[1] = acrossToLeft[1] / length;
+  // move left vertex to position of orthogonal projection from the dragged
+  // vertex on the acrossToLeft vector
+  let dot = acrossToVertex[0] * acrossToLeft[0] + acrossToVertex[1] * acrossToLeft[1];
+  coords[(segmentData.index + index + 1) % 4] = [
+    across[0] + dot * acrossToLeft[0],
+    across[1] + dot * acrossToLeft[1],
+  ];
+
+  // vertex right of dragged vertex
+  const right = coords[(segmentData.index + index + 3) % 4];
+  // vector from across to right
+  const acrossToRight = [right[0] - across[0], right[1] - across[1]];
+  // normalize vector
+  length = Math.sqrt(acrossToRight[0] * acrossToRight[0] + acrossToRight[1] * acrossToRight[1]);
+  acrossToRight[0] = acrossToRight[0] / length;
+  acrossToRight[1] = acrossToRight[1] / length;
+  // move right vertex to position of orthogonal projection from the dragged
+  // vertex on the acrossToRight vector
+  dot = acrossToVertex[0] * acrossToRight[0] + acrossToVertex[1] * acrossToRight[1];
+  coords[(segmentData.index + index + 3) % 4] = [
+    across[0] + dot * acrossToRight[0],
+    across[1] + dot * acrossToRight[1],
+  ];
+
+  // update position of dragged vertex
+  coords[segmentData.index + index] = vertex;
+}
+
+function updateEllipseGeometry(coordinates, segmentData, depth, index, vertex) {
+  const coords = coordinates[depth[0]];
+  // Vertex left from the dragged vertex.
+  const left = coords[(segmentData.index + index + 1) % 4];
+  // Vertex across from the dragged vertex.
+  const across = coords[(segmentData.index + index + 2) % 4];
+  // Vertex right from the dragged vertex.
+  const right = coords[(segmentData.index + index + 3) % 4];
+
+  // Half the distance between left and right.
+  const radius = Math.sqrt(Math.pow(left[0] - right[0], 2) + Math.pow(left[1] - right[1], 2)) / 2;
+  // Vector from across to dragged.
+  const acrossToDragged = [vertex[0] - across[0], vertex[1] - across[1]];
+  // Vector perpendicular to acrossToDragged.
+  const pAcrossToDragged = [-1 * acrossToDragged[1], acrossToDragged[0]];
+  // Bring vector to unit length.
+  const length = Math.sqrt(pAcrossToDragged[0] * pAcrossToDragged[0] + pAcrossToDragged[1] * pAcrossToDragged[1]);
+  pAcrossToDragged[0] = pAcrossToDragged[0] / length;
+  pAcrossToDragged[1] = pAcrossToDragged[1] / length;
+
+  // New center point.
+  const center = [across[0] + acrossToDragged[0] / 2, across[1] + acrossToDragged[1] / 2]
+
+  coords[(segmentData.index + index + 1) % 4] = [
+    center[0] + pAcrossToDragged[0] * radius,
+    center[1] + pAcrossToDragged[1] * radius,
+  ];
+  coords[(segmentData.index + index + 3) % 4] = [
+    center[0] - pAcrossToDragged[0] * radius,
+    center[1] - pAcrossToDragged[1] * radius,
+  ];
+  // Update position of dragged vertex.
+  coords[segmentData.index + index] = vertex;
 }
 
 export default Modify;

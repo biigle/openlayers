@@ -136,6 +136,56 @@ class CanvasPolygonBuilder extends CanvasBuilder {
   }
 
   /**
+   * @param {import("../../geom/Ellipse.js").default} ellipseGeometry Ellipse geometry.
+   * @param {import("../../Feature.js").default} feature Feature.
+   * @param {number} [index] Render order index.
+   */
+  drawEllipse(ellipseGeometry, feature, index) {
+    const state = this.state;
+    const fillStyle = state.fillStyle;
+    const strokeStyle = state.strokeStyle;
+    if (fillStyle === undefined && strokeStyle === undefined) {
+      return;
+    }
+    this.setFillStrokeStyles_();
+    this.beginGeometry(ellipseGeometry, feature, index);
+    // always fill the circle for hit detection
+    this.hitDetectionInstructions.push([
+      CanvasInstruction.SET_FILL_STYLE,
+      defaultFillStyle,
+    ]);
+    if (state.strokeStyle !== undefined) {
+      this.hitDetectionInstructions.push([
+        CanvasInstruction.SET_STROKE_STYLE,
+        state.strokeStyle,
+        state.lineWidth,
+        state.lineCap,
+        state.lineJoin,
+        state.miterLimit,
+        state.lineDash,
+        state.lineDashOffset,
+      ]);
+    }
+    const flatCoordinates = ellipseGeometry.getFlatCoordinates();
+    const myBegin = this.coordinates.length;
+    // Always use all coordinates of an ellipse and don't clip them.
+    Array.prototype.push.apply(this.coordinates, flatCoordinates)
+    const myEnd = this.coordinates.length;
+    const ellipseInstruction = [CanvasInstruction.ELLIPSE, myBegin, myEnd];
+    this.instructions.push(beginPathInstruction, ellipseInstruction);
+    this.hitDetectionInstructions.push(beginPathInstruction, ellipseInstruction);
+    this.hitDetectionInstructions.push(fillInstruction);
+    if (state.fillStyle !== undefined) {
+      this.instructions.push(fillInstruction);
+    }
+    if (state.strokeStyle !== undefined) {
+      this.instructions.push(strokeInstruction);
+      this.hitDetectionInstructions.push(strokeInstruction);
+    }
+    this.endGeometry(feature);
+  };
+
+  /**
    * @param {import("../../geom/Polygon.js").default|import("../Feature.js").default} polygonGeometry Polygon geometry.
    * @param {import("../../Feature.js").FeatureLike} feature Feature.
    * @param {number} [index] Render order index.

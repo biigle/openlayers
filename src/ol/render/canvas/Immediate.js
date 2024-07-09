@@ -575,6 +575,8 @@ class CanvasImmediateRenderer extends VectorContext {
         );
         break;
       case 'Polygon':
+      case 'Rectangle':
+      case 'Ellipse':
         this.drawPolygon(
           /** @type {import("../../geom/Polygon.js").default} */ (geometry),
         );

@@ -1,5 +1,5 @@
 {
-  "name": "ol",
+  "name": "@biigle/ol",
   "version": "9.2.4",
   "description": "OpenLayers mapping library",
   "keywords": [
@@ -34,7 +34,10 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git://github.com/openlayers/openlayers.git"
+    "url": "git://github.com/biigle/openlayers.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
   },
   "license": "BSD-2-Clause",
   "bugs": {

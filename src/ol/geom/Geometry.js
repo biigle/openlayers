@@ -24,10 +24,10 @@ import {transform2D} from './flat/transform.js';
  */
 
 /**
- * @typedef {'Point' | 'LineString' | 'LinearRing' | 'Polygon' | 'MultiPoint' | 'MultiLineString' | 'MultiPolygon' | 'GeometryCollection' | 'Circle'} Type
+ * @typedef {'Point' | 'LineString' | 'LinearRing' | 'Polygon' | 'MultiPoint' | 'MultiLineString' | 'MultiPolygon' | 'GeometryCollection' | 'Circle' | 'Ellipse' | 'Rectangle'} Type
  * The geometry type.  One of `'Point'`, `'LineString'`, `'LinearRing'`,
  * `'Polygon'`, `'MultiPoint'`, `'MultiLineString'`, `'MultiPolygon'`,
- * `'GeometryCollection'`, or `'Circle'`.
+ * `'GeometryCollection'`, `'Circle'`, `'Ellipse'`, or `'Rectangle'`.
  */
 
 /**

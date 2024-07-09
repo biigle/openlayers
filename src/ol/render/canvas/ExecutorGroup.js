@@ -20,6 +20,7 @@ import {transform2D} from '../../geom/flat/transform.js';
 export const ALL = [
   'Polygon',
   'Circle',
+  'Ellipse',
   'LineString',
   'Image',
   'Text',
