@@ -2137,6 +2137,7 @@ function getMode(type) {
       return 'Point';
     case 'LineString':
     case 'MultiLineString':
+      return 'LineString';
     case 'Polygon':
     case 'MultiPolygon':
       return 'Polygon';
