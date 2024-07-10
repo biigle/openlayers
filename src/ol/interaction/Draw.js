@@ -160,7 +160,7 @@ import {getStrideForLayout} from '../geom/SimpleGeometry.js';
  */
 
 /**
- * @typedef {'Point' | 'LineString' | 'Polygon' | 'Circle' | 'Ellipse'} Mode
+ * @typedef {'Point' | 'LineString' | 'Polygon' | 'Circle' | 'Ellipse' | 'Rectangle'} Mode
  * Draw mode.  This collapses multi-part geometry types with their single-part
  * cousins.
  */
@@ -1549,7 +1549,7 @@ class Draw extends PointerInteraction {
         at = true;
       } else if (mode === 'Circle') {
         at = this.sketchCoords_.length === 2;
-      } else if (mode === 'LineString') {
+      } else if (mode === 'LineString' || mode === 'Rectangle') {
         potentiallyDone =
           !tracing && this.sketchCoords_.length > this.minPoints_;
       } else if (mode === 'Polygon') {
@@ -1748,7 +1748,7 @@ class Draw extends PointerInteraction {
     const projection = this.getMap().getView().getProjection();
     let done;
     let coordinates;
-    if (mode === 'LineString' || mode === 'Circle' || mode === 'Ellipse') {
+    if (mode === 'LineString' || mode === 'Circle' || mode === 'Ellipse'  || mode === 'Rectangle') {
       this.finishCoordinate_ = coordinate.slice();
       coordinates = /** @type {LineCoordType} */ (this.sketchCoords_);
       if (coordinates.length >= this.maxPoints_) {
@@ -1795,7 +1795,7 @@ class Draw extends PointerInteraction {
     const mode = this.mode_;
     for (let i = 0; i < n; ++i) {
       let coordinates;
-      if (mode === 'LineString' || mode === 'Circle') {
+      if (mode === 'LineString' || mode === 'Circle' || mode === 'Rectangle') {
         coordinates = /** @type {LineCoordType} */ (this.sketchCoords_);
         coordinates.splice(-2, 1);
         if (coordinates.length >= 2) {
@@ -1856,7 +1856,7 @@ class Draw extends PointerInteraction {
     let coordinates = this.sketchCoords_;
     const geometry = sketchFeature.getGeometry();
     const projection = this.getMap().getView().getProjection();
-    if (this.mode_ === 'LineString') {
+    if (this.mode_ === 'LineString' || this.mode_ === 'Rectangle') {
       // remove the redundant last point
       coordinates.pop();
       this.geometryFunction_(coordinates, geometry, projection);
@@ -1939,7 +1939,7 @@ class Draw extends PointerInteraction {
     }
     /** @type {LineCoordType} */
     let sketchCoords;
-    if (mode === 'LineString' || mode === 'Circle') {
+    if (mode === 'LineString' || mode === 'Circle' || mode === 'Rectangle') {
       sketchCoords = /** @type {LineCoordType} */ (this.sketchCoords_);
     } else if (mode === 'Polygon') {
       sketchCoords =
@@ -2137,9 +2137,6 @@ function getMode(type) {
       return 'Point';
     case 'LineString':
     case 'MultiLineString':
-    // Use LineString mode for rectangle so the geometry always has an end point.
-    case 'Rectangle':
-      return 'LineString';
     case 'Polygon':
     case 'MultiPolygon':
       return 'Polygon';
@@ -2147,6 +2144,8 @@ function getMode(type) {
       return 'Circle';
     case 'Ellipse':
       return 'Ellipse';
+    case 'Rectangle':
+      return 'Rectangle';
     default:
       throw new Error('Invalid type: ' + type);
   }

@@ -259,7 +259,6 @@ class CanvasBuilder extends VectorContext {
     let flatCoordinates, builderEnd, builderEnds, builderEndss;
     let offset;
 
-    // TODO?
     switch (type) {
       case 'MultiPolygon':
         flatCoordinates =
