@@ -1,6 +1,6 @@
 {
   "name": "@biigle/ol",
-  "version": "9.2.4",
+  "version": "9.2.4.1",
   "description": "OpenLayers mapping library",
   "keywords": [
     "map",

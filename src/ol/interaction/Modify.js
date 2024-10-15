@@ -1661,14 +1661,15 @@ function closestOnSegmentData(pointCoordinates, segmentData, projection) {
       projection,
     );
   } else if (type === 'Ellipse' || type === 'Rectangle') {
+    let rectGeometry = geometry;
     const userProjection = getUserProjection();
     if (userProjection) {
-      geometry = geometry
+      rectGeometry = rectGeometry
         .clone()
         .transform(userProjection, projection);
     }
     return toUserCoordinate(
-      geometry.getClosestPoint(
+      rectGeometry.getClosestPoint(
         fromUserCoordinate(pointCoordinates, projection),
       ),
       projection,
