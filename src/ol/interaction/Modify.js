@@ -1707,15 +1707,19 @@ function updateRectangleGeometry(coordinates, segmentData, depth, index, vertex)
   const acrossToLeft = [left[0] - across[0], left[1] - across[1]];
   // normalize vector
   let length = Math.sqrt(acrossToLeft[0] * acrossToLeft[0] + acrossToLeft[1] * acrossToLeft[1]);
-  acrossToLeft[0] = acrossToLeft[0] / length;
-  acrossToLeft[1] = acrossToLeft[1] / length;
-  // move left vertex to position of orthogonal projection from the dragged
-  // vertex on the acrossToLeft vector
-  let dot = acrossToVertex[0] * acrossToLeft[0] + acrossToVertex[1] * acrossToLeft[1];
-  coords[(segmentData.index + index + 1) % 4] = [
-    across[0] + dot * acrossToLeft[0],
-    across[1] + dot * acrossToLeft[1],
-  ];
+  // If the edge has zero length, the direction can't be determined. Keep the
+  // vertex in place instead of setting NaN coordinates.
+  if (length > 0) {
+    acrossToLeft[0] = acrossToLeft[0] / length;
+    acrossToLeft[1] = acrossToLeft[1] / length;
+    // move left vertex to position of orthogonal projection from the dragged
+    // vertex on the acrossToLeft vector
+    const dot = acrossToVertex[0] * acrossToLeft[0] + acrossToVertex[1] * acrossToLeft[1];
+    coords[(segmentData.index + index + 1) % 4] = [
+      across[0] + dot * acrossToLeft[0],
+      across[1] + dot * acrossToLeft[1],
+    ];
+  }
 
   // vertex right of dragged vertex
   const right = coords[(segmentData.index + index + 3) % 4];
@@ -1723,15 +1727,17 @@ function updateRectangleGeometry(coordinates, segmentData, depth, index, vertex)
   const acrossToRight = [right[0] - across[0], right[1] - across[1]];
   // normalize vector
   length = Math.sqrt(acrossToRight[0] * acrossToRight[0] + acrossToRight[1] * acrossToRight[1]);
-  acrossToRight[0] = acrossToRight[0] / length;
-  acrossToRight[1] = acrossToRight[1] / length;
-  // move right vertex to position of orthogonal projection from the dragged
-  // vertex on the acrossToRight vector
-  dot = acrossToVertex[0] * acrossToRight[0] + acrossToVertex[1] * acrossToRight[1];
-  coords[(segmentData.index + index + 3) % 4] = [
-    across[0] + dot * acrossToRight[0],
-    across[1] + dot * acrossToRight[1],
-  ];
+  if (length > 0) {
+    acrossToRight[0] = acrossToRight[0] / length;
+    acrossToRight[1] = acrossToRight[1] / length;
+    // move right vertex to position of orthogonal projection from the dragged
+    // vertex on the acrossToRight vector
+    const dot = acrossToVertex[0] * acrossToRight[0] + acrossToVertex[1] * acrossToRight[1];
+    coords[(segmentData.index + index + 3) % 4] = [
+      across[0] + dot * acrossToRight[0],
+      across[1] + dot * acrossToRight[1],
+    ];
+  }
 
   // update position of dragged vertex
   coords[segmentData.index + index] = vertex;
